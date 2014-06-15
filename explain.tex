@@ -1,0 +1,53 @@
+\documentclass[12pt,german,a4paper]{scrartcl}
+
+\usepackage[left=3cm,right=2.5cm,top=1.5cm,bottom=1cm,includeheadfoot]{geometry}
+
+% deutsche Silbentrennung
+\usepackage[ngerman]{babel}
+
+% wegen deutschen Umlauten
+\usepackage[ansinew]{inputenc}
+
+% fuer Zitate
+\usepackage[round]{natbib}
+
+% Abkürzungsverzeichnis
+\usepackage{acronym}
+
+\usepackage{fontspec}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{color}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{\baselineskip}
+\setlist{nolistsep}
+
+\renewcommand{\familydefault}{\sfdefault}
+
+% hier beginnt das Dokument
+\begin{document}
+
+% Festlegung Art der Zitierung - Havardmethode: Abkuerzung Autor + Jahr
+\bibliographystyle{alphadin}
+
+\iffalse
+Titelblatt
+entfällt Sperrvermerk
+Inhaltsverzeichnis
+• Abkürzungs-, Abbildungs- und Tabellenverzeichnis
+• ggf. Symbolverzeichnis
+• Textteil
+ggf. Anhang und Anlagen
+Literaturverzeichnis
+entfälllt: ggf. Rechtsprechungsverzeichnis
+Ehrenwörtliche Erklärung
+\fi
+\input{titelblatt}
+\input{abstract}
+\input{verzeichnisse}
+\input{text}
+\input{anhang}
+\input{literatur}
+
+\end{document}
