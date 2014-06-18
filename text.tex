@@ -1,5 +1,6 @@
-\chapter{Einleitung}
-\section{Problemstellung}
+
+\section{Einleitung}
+\subsection{Problemstellung}
 Datenbank-Systeme finden heute in nahezu allen IT-Systemen Verwendung.
 Der Optimierung von Datenbank-Anfragen kommt daher eine große Bedeutung zu.
 Hierfür gibt es eine Vielzahl von Möglichkeiten, z.B. Latenz und Bandbreite der Anbindung der Datenbank, Leistungsfähigkeit des Datenbank-Servers, Anzahl der Datenbank-Anfragen im Programmcode, Cachingmeachanismen.
@@ -9,25 +10,38 @@ Hat man andere Flaschenhälse ausgeschlossen oder bereits optimiert,  gilt es di
 Viele RDBMS stellen mit dem SQL-Kommando EXPLAIN eine Möglichkeit zur Verfügung, mehr über die innere Arbeitsweise der Datenbank bei einer bestimmten SQL-Abfrage zu erfahren.
 Durch gezielte Veränderung der SQL-Abfrage oder des Datenschemas kann somit die Bearbeitung der Abfrage optimiert werden.
 
-\section{Zielsetzung der vorliegenden  wissenschaftlichen  Auseinandersetzung}
+\subsection{Zielsetzung der vorliegenden  wissenschaftlichen  Auseinandersetzung}
 % Eine Semesterarbeit in diesem Bereich soll sich mit MySQL spezifischen Fragestellungen auseinander setzen. Es sollen auch die theoretischen Grundlagen der zu behandelnden datenbanktheoretischen Ansätze erläutern.
 Die folgende Arbeit bezieht sich speziell auf die Optimierung von SQL-Anfragen mitttels EXPLAIN bei dem RDBMS MySQL.
-Es soll untersucht werden 
+Es soll untersucht werden
 
-\section{Vorgehensbeschreibung}
+\subsection{Vorgehensbeschreibung}
 
-\chapter{Theoretische Grundlagen}
+
+\section{Theoretische Grundlagen}
+\subsection{Der physische Zugriff auf die Daten}
+ HDD-Blockgerätetreiber-Dateisystemtreiber-DBMS
+ 
+\subsection{Speicherstrukturen}
+ Binärbaum, B-Baum, Hashing, Heap
+ 
+\subsection{Bearbeitung von SQL-Statements}
+ Umsetzung in relationale Algebra
+ 
+\subsection{Optimierungen : frühzeitige Restriktionen, JOINs}
 
 
 \section{Beispiel MySQL}
- At vero eos et
-  accusam et justo duo dolores et ea rebum. Stet clita kasd
-  gubergren, no sea takimata sanctus est Lorem ipsum dolor sit
-  amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr,
-  sed diam nonumy eirmod tempor invidunt ut labore et dolore
-  magna aliquyam erat, sed diam voluptua
+\subsection{einfache Select-Anfragen (eine Tabelle)}
+\subsection{Umschreiben von Nicht-Select-Anfragen}
+\subsection{Die Spalten der EXPLAIN-Ausgabe}
+\subsection{EXPLAIN EXTENDED}
+\subsection{EXPLAIN PARTITIONS}
+\subsection{Abfragen mit mehreren Tabellen}
+\subsection{Optimierungsmöglichkeiten und Benchmarking}
+\subsection{Visuelles EXPLAIN (graphische Werkzeuge)}
 
-\chapter{Fazit und Ausblick}
+\section{Fazit und Ausblick}
 % Der  Schluss  stellt  quasi  die  Abrundung  der  Arbeit  dar.  Er  beinhaltet  eine  kurze  Zusammenfassung
 % der wichtigsten Ergebnisse, ein Fazit sowie einen Ausblick auf weitere Fragestellungen bzw. künftige Entwicklungen
 

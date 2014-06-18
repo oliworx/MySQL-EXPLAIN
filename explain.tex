@@ -1,3 +1,4 @@
+% Kompilieren mit XeLaTeX
 \documentclass[12pt,german,a4paper]{scrartcl}
 
 \usepackage[left=3cm,right=2.5cm,top=1.5cm,bottom=1cm,includeheadfoot]{geometry}
@@ -8,8 +9,12 @@
 % wegen deutschen Umlauten
 \usepackage[ansinew]{inputenc}
 
+% 1,5-zeilig
+\usepackage{setspace}
+\onehalfspacing
+
 % fuer Zitate
-\usepackage[round]{natbib}
+% \usepackage[round]{natbib}
 
 % Abkürzungsverzeichnis
 \usepackage{acronym}
@@ -19,11 +24,12 @@
 \usepackage{enumitem}
 \usepackage{color}
 
-\setlength{\parindent}{0pt}
-\setlength{\parskip}{\baselineskip}
-\setlist{nolistsep}
+\setlength{\parindent}{0pt} % keine Einrückung bei Absätzen
+\setlength{\parskip}{\baselineskip} % Abstand zwischen Absätzen
+%\setlist{nolistsep} % kein Abstand bei Listen zwischen den Items
+% \renewcommand{\familydefault}{\sfdefault} % Schriftfamilie
 
-\renewcommand{\familydefault}{\sfdefault}
+\addtokomafont{sectioning}{\rmfamily}
 
 % hier beginnt das Dokument
 \begin{document}
@@ -31,18 +37,17 @@
 % Festlegung Art der Zitierung - Havardmethode: Abkuerzung Autor + Jahr
 \bibliographystyle{alphadin}
 
-\iffalse
-Titelblatt
-entfällt: Sperrvermerk
-Inhaltsverzeichnis
-Abkürzungs-, Abbildungs- und Tabellenverzeichnis
-entfällt: ggf. Symbolverzeichnis
-Textteil
-ggf. Anhang und Anlagen
-Literaturverzeichnis
-entfälllt: ggf. Rechtsprechungsverzeichnis
-Ehrenwörtliche Erklärung
-\fi
+%Titelblatt
+%entfällt: Sperrvermerk
+%Inhaltsverzeichnis
+%Abkürzungs-, Abbildungs- und Tabellenverzeichnis
+%entfällt: ggf. Symbolverzeichnis
+%Textteil
+%ggf. Anhang und Anlagen
+%Literaturverzeichnis
+%entfälllt: ggf. Rechtsprechungsverzeichnis
+%Ehrenwörtliche Erklärung
+
 \input{titelblatt}
 \input{verzeichnisse}
 \input{text}
