@@ -16,14 +16,18 @@ Die folgende Arbeit bezieht sich speziell auf die Optimierung von SQL-Anfragen m
 Es soll untersucht werden
 
 \subsection{Vorgehensbeschreibung}
-
+-Literaturrecherche betrieben,
+-wesentliche Punkte zusammengefasst
+-an Beispieldatenbank experimentell nachvollzogen
 
 \section{Theoretische Grundlagen}
 \subsection{Der physische Zugriff auf die Daten}
  HDD-Blockgerätetreiber-Dateisystemtreiber-DBMS
  
 \subsection{Speicherstrukturen}
- Binärbaum, B-Baum, Hashing, Heap
+ Binärbaum:
+ 
+ B-Baum, Hashing, Heap
  
 \subsection{Bearbeitung von SQL-Statements}
  Umsetzung in relationale Algebra
@@ -33,10 +37,75 @@ Es soll untersucht werden
 
 \section{Beispiel MySQL}
 \subsection{einfache Select-Anfragen (eine Tabelle)}
+
 \subsection{Umschreiben von Nicht-Select-Anfragen}
+As of MySQL 5.6.3, permitted explainable statements for EXPLAIN are SELECT, DELETE, INSERT, REPLACE, and UPDATE. Before MySQL 5.6.3, SELECT is the only explainable statement.
+(http://dev.mysql.com/doc/refman/5.6/en/using-explain.html)
 \subsection{Die Spalten der EXPLAIN-Ausgabe}
-\subsection{EXPLAIN EXTENDED}
-\subsection{EXPLAIN PARTITIONS}
+id
+identifiziert das SELECT, zu dem die Zeile gehört
+-bei einfachen SELECT immer nur 1
+
+select_type
+einfaches odere komplexes SELECT
+-SIMPLE = Einfaches select, keine unterabfragen oder UNIONS
+-PRIMARY = äusseres eines komplexen SELECT
+-SUBQUERY = Select in einer Unterabfrage
+-DERIVED = SELECT in Unterabfrage in FROM-Klausel
+-UNION = zweites bzw. nachfolgende SELECT einer Union
+-UNION RESULT = ergebnis des UNION, wird aus temporärer Tabelle geholt.
+
+table
+auf welche Tabelle wird zugegriffen
+-Tabellenname oder Alias
+-Spalte von oben nach unten lesen
+
+type: 
+Wie ist der Zigriffstyp, wie wird MySQL die Zeilen in der Tabelle auffinden?
+-ALL = Tablescan, Tabelle muss in der Regel von Anfang bis Ende durchlaufen werden
+-index = Wie Tablescan, aber in Indexreihenfolge. Sortierung wird vermieden.
+-range=Bereichsscan= eingeschränkter Indexscan, z.B bei BETWEEN oder WHERE x >
+-ref = Indexzugriff, Index-Lookup, Zeilen entsprechen einem Wert, nur bei einem nichteindeutigen Index, Index wird mit einem Referenzwert verglichen. Variante: ref_or_null
+-eq_ref = Index-Lookup mit eindeutigem Treffer, bei Primärschlüssel oder eindeutigem Index
+-const,system = konnte von MySQL wegoptimiert oder in eine Konstante umgewandelt werden.
+-NULL = Abfrage kann von MySQL bei der Optimierung aufgelöst werden, kein Zugriff auf Tabelle oder Index, z.B. Minimum einer indizierten Spalte
+
+possible_keys:
+-welche Indizes kömnnten benutzt werden
+-frühe Phase der Optimierung
+-können später nutzlos sein
+
+key:
+-welchen Index wählt der Optimierer für die Abfrage
+-auch abdeckende Indizes
+
+key_len
+-wie viel Byte (Spaltenbreite) eines Index werden benutzt
+-welche Spalten des Index werden genutzt, von links beginnend
+
+ref
+-welche Spalten aus früheren Tabellen werden benutzt, um in dem key-Index nachzuschlagen
+
+rows
+-Schätzung, Anzahl der Zeilen, die gelesen werden müssen
+-pro schleife im Nested-Loop-Join-Plan
+-Schätzung kann ungenau sein
+
+filtered
+-neu seit MySQL 5.1
+-bei Explain EXTENDED
+-pessimistische Schätzung des Prozentsatzes der Zeilen
+
+Extra
+-Using Index = abdeckender Index benutzt
+-Using where = Zeilen nachträglich gefiltert, also nicht den Index für die WHERE-Bedingung genutzt
+-Using temporary = temporäre Tabelle für Sortierung
+-Using filesort = externe Sortierung, im RAM oder auf HDD
+-ranke checked for each record (index map: N) = kein guter Index vorhanden
+EXPLAIN Output Format http://dev.mysql.com/doc/refman/5.6/en/explain-output.html
+
+\subsubsection{EXPLAIN EXTENDED}
+\subsubsection{EXPLAIN PARTITIONS}
 \subsection{Abfragen mit mehreren Tabellen}
 \subsection{Optimierungsmöglichkeiten und Benchmarking}
 \subsection{Visuelles EXPLAIN (graphische Werkzeuge)}
