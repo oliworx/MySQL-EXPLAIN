@@ -1,5 +1,6 @@
 
 \section{Einleitung}
+
 \subsection{Problemstellung}
 Datenbank-Systeme finden heute in nahezu allen IT-Systemen Verwendung.
 Der Optimierung von Datenbank-Anfragen kommt daher eine große Bedeutung zu.
@@ -22,46 +23,55 @@ Es soll untersucht werden
 
 \section{Theoretische Grundlagen}
 \subsection{Der physische Zugriff auf die Daten}
+Daten einer DB werden in der Regel auf einer Festplatte (HDD) oder einem Flash-Laufwerk (SSD) gespeichert.
+Das RDBMS nutzt dazu Funktionen des Betriebssystems auf verschiedenen Ebenen.
+Dateisystem-Treiber, nimmt Lese und Schreibanforderungen für Datensätze an und gibt rechnet diese in nie durchnumerierten Blöcke des Blockgerätes um. Der Blockgeräte-Treiber liest dann die entsprenden Blöcke von der Platte oder schreibt sie.
+
+DBMS -> Dateisystemtreiber -> Blockgerätetreiber -> HDD/SSD 
+
  HDD-Blockgerätetreiber-Dateisystemtreiber-DBMS
- 
+
 \subsection{Speicherstrukturen}
  Binärbaum:
- 
+
  B-Baum, Hashing, Heap
- 
+
 \subsection{Bearbeitung von SQL-Statements}
  Umsetzung in relationale Algebra
- 
+
 \subsection{Optimierungen : frühzeitige Restriktionen, JOINs}
 
 
 \section{Beispiel MySQL}
+
 \subsection{einfache Select-Anfragen (eine Tabelle)}
 
 \subsection{Umschreiben von Nicht-Select-Anfragen}
-As of MySQL 5.6.3, permitted explainable statements for EXPLAIN are SELECT, DELETE, INSERT, REPLACE, and UPDATE. Before MySQL 5.6.3, SELECT is the only explainable statement.
-(http://dev.mysql.com/doc/refman/5.6/en/using-explain.html)
+As of MySQL 5.6.3, permitted explainable statements for EXPLAIN are SELECT, 
+DELETE, INSERT, REPLACE, and UPDATE. Before MySQL 5.6.3, SELECT is the only explainable statement.
+http://dev.mysql.com/doc/refman/5.6/en/using-explain.html
+
 \subsection{Die Spalten der EXPLAIN-Ausgabe}
 id
 identifiziert das SELECT, zu dem die Zeile gehört
 -bei einfachen SELECT immer nur 1
 
 select_type
-einfaches odere komplexes SELECT
--SIMPLE = Einfaches select, keine unterabfragen oder UNIONS
--PRIMARY = äusseres eines komplexen SELECT
+einfaches oder komplexes SELECT
+-SIMPLE = Einfaches select, keine Unterabfragen oder UNIONS
+-PRIMARY = äußeres eines komplexen SELECT
 -SUBQUERY = Select in einer Unterabfrage
 -DERIVED = SELECT in Unterabfrage in FROM-Klausel
 -UNION = zweites bzw. nachfolgende SELECT einer Union
--UNION RESULT = ergebnis des UNION, wird aus temporärer Tabelle geholt.
+-UNION RESULT = Ergebnis des UNION, wird aus temporärer Tabelle geholt.
 
 table
 auf welche Tabelle wird zugegriffen
 -Tabellenname oder Alias
 -Spalte von oben nach unten lesen
 
-type: 
-Wie ist der Zigriffstyp, wie wird MySQL die Zeilen in der Tabelle auffinden?
+type:
+Wie ist der Zugriffstyp, wie wird MySQL die Zeilen in der Tabelle auffinden?
 -ALL = Tablescan, Tabelle muss in der Regel von Anfang bis Ende durchlaufen werden
 -index = Wie Tablescan, aber in Indexreihenfolge. Sortierung wird vermieden.
 -range=Bereichsscan= eingeschränkter Indexscan, z.B bei BETWEEN oder WHERE x >
