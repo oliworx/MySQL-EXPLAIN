@@ -49,14 +49,14 @@ DBMS -> Dateisystemtreiber -> Blockgerätetreiber -> HDD/SSD
 \subsection{Umschreiben von Nicht-Select-Anfragen}
 As of MySQL 5.6.3, permitted explainable statements for EXPLAIN are SELECT, 
 DELETE, INSERT, REPLACE, and UPDATE. Before MySQL 5.6.3, SELECT is the only explainable statement.
-http://dev.mysql.com/doc/refman/5.6/en/using-explain.html
+\cite{refman1}
 
 \subsection{Die Spalten der EXPLAIN-Ausgabe}
 id
 identifiziert das SELECT, zu dem die Zeile gehört
 -bei einfachen SELECT immer nur 1
 
-select_type
+select\_type
 einfaches oder komplexes SELECT
 -SIMPLE = Einfaches select, keine Unterabfragen oder UNIONS
 -PRIMARY = äußeres eines komplexen SELECT
@@ -75,12 +75,12 @@ Wie ist der Zugriffstyp, wie wird MySQL die Zeilen in der Tabelle auffinden?
 -ALL = Tablescan, Tabelle muss in der Regel von Anfang bis Ende durchlaufen werden
 -index = Wie Tablescan, aber in Indexreihenfolge. Sortierung wird vermieden.
 -range=Bereichsscan= eingeschränkter Indexscan, z.B bei BETWEEN oder WHERE x >
--ref = Indexzugriff, Index-Lookup, Zeilen entsprechen einem Wert, nur bei einem nichteindeutigen Index, Index wird mit einem Referenzwert verglichen. Variante: ref_or_null
--eq_ref = Index-Lookup mit eindeutigem Treffer, bei Primärschlüssel oder eindeutigem Index
+-ref = Indexzugriff, Index-Lookup, Zeilen entsprechen einem Wert, nur bei einem nichteindeutigen Index, Index wird mit einem Referenzwert verglichen. Variante: ref\_or\_null
+-eq\_ref = Index-Lookup mit eindeutigem Treffer, bei Primärschlüssel oder eindeutigem Index
 -const,system = konnte von MySQL wegoptimiert oder in eine Konstante umgewandelt werden.
 -NULL = Abfrage kann von MySQL bei der Optimierung aufgelöst werden, kein Zugriff auf Tabelle oder Index, z.B. Minimum einer indizierten Spalte
 
-possible_keys:
+possible\_keys:
 -welche Indizes kömnnten benutzt werden
 -frühe Phase der Optimierung
 -können später nutzlos sein
@@ -89,7 +89,7 @@ key:
 -welchen Index wählt der Optimierer für die Abfrage
 -auch abdeckende Indizes
 
-key_len
+key\_len
 -wie viel Byte (Spaltenbreite) eines Index werden benutzt
 -welche Spalten des Index werden genutzt, von links beginnend
 
@@ -112,7 +112,7 @@ Extra
 -Using temporary = temporäre Tabelle für Sortierung
 -Using filesort = externe Sortierung, im RAM oder auf HDD
 -ranke checked for each record (index map: N) = kein guter Index vorhanden
-EXPLAIN Output Format http://dev.mysql.com/doc/refman/5.6/en/explain-output.html
+EXPLAIN Output Format \cite{refman2}
 
 \subsubsection{EXPLAIN EXTENDED}
 \subsubsection{EXPLAIN PARTITIONS}
