@@ -52,23 +52,26 @@ DELETE, INSERT, REPLACE, and UPDATE. Before MySQL 5.6.3, SELECT is the only expl
 \cite{refman1}
 
 \subsection{Die Spalten der EXPLAIN-Ausgabe}
-id
-identifiziert das SELECT, zu dem die Zeile gehört
--bei einfachen SELECT immer nur 1
+id\\*
+identifiziert das SELECT, zu dem die Zeile gehört, bei einfachen SELECT immer nur 1
 
-select\_type
+select\_type\\*
 einfaches oder komplexes SELECT
--SIMPLE = Einfaches select, keine Unterabfragen oder UNIONS
--PRIMARY = äußeres eines komplexen SELECT
--SUBQUERY = Select in einer Unterabfrage
--DERIVED = SELECT in Unterabfrage in FROM-Klausel
--UNION = zweites bzw. nachfolgende SELECT einer Union
--UNION RESULT = Ergebnis des UNION, wird aus temporärer Tabelle geholt.
+\begin{description}
+	\item[SIMPLE] Einfaches select, keine Unterabfragen oder UNIONS
+	\item[PRIMARY] äußeres eines komplexen SELECT
+	\item[SUBQUERY] Select in einer Unterabfrage
+	\item[DERIVED] SELECT in Unterabfrage in FROM-Klausel
+	\item[UNION] zweites bzw. nachfolgende SELECT einer Union
+	\item[UNION RESULT] Ergebnis des UNION, wird aus temporärer Tabelle geholt.
+\end{description}
 
-table
+table\\*
 auf welche Tabelle wird zugegriffen
--Tabellenname oder Alias
--Spalte von oben nach unten lesen
+\begin{description}
+	\item Tabellenname oder Alias
+	\item Spalte von oben nach unten lesen
+\end{description}
 
 type:
 Wie ist der Zugriffstyp, wie wird MySQL die Zeilen in der Tabelle auffinden?
