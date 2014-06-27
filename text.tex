@@ -6,10 +6,9 @@ Datenbank-Systeme finden heute in nahezu allen IT-Systemen Verwendung.
 Der Optimierung von Datenbank-Anfragen kommt daher eine große Bedeutung zu.
 Hierfür gibt es eine Vielzahl von Möglichkeiten, z.B. Latenz und Bandbreite der Anbindung der Datenbank, Leistungsfähigkeit des Datenbank-Servers, Anzahl der Datenbank-Anfragen im Programmcode, Cachingmeachanismen.
 
-Hat man andere Flaschenhälse ausgeschlossen oder bereits optimiert,  gilt es die relevanten SQL-Abfragen des Systems zu identifizieren und gezielt zu optimieren.
+Hat man andere Flaschenhälse ausgeschlossen oder bereits optimiert,  gilt es die für die Performance relevanten SQL-Abfragen des Systems zu identifizieren und gezielt zu optimieren. Dies können lange laufende Abfragen sein, die z.B. bei MySQLs mit der Logdatei für langsame Anfragen gezielt ermittelt werden können. Oftmals sind es aber auch viele einfache, kurze Abfragen, die jedoch zu Hunderten oder Tausenden pro Sekunde auftreten und so die Anwendung viel Zeit kosten und den Datenbank-Server belasten.
 
-Viele RDBMS stellen mit dem SQL-Kommando EXPLAIN eine Möglichkeit zur Verfügung, mehr über die innere Arbeitsweise der Datenbank bei einer bestimmten SQL-Abfrage zu erfahren.
-Durch gezielte Veränderung der SQL-Abfrage oder des Datenschemas kann somit die Bearbeitung der Abfrage optimiert werden.
+Viele RDBMS stellen mit dem SQL-Kommando EXPLAIN eine Möglichkeit zur Verfügung, mehr über die innere Arbeitsweise der Datenbank bei einer bestimmten SQL-Abfrage zu erfahren. Durch gezielte Veränderung der SQL-Abfrage oder des Datenschemas kann somit die Bearbeitung der Abfrage optimiert werden.
 
 \subsection{Zielsetzung der vorliegenden  wissenschaftlichen  Auseinandersetzung}
 % Eine Semesterarbeit in diesem Bereich soll sich mit MySQL spezifischen Fragestellungen auseinander setzen. Es sollen auch die theoretischen Grundlagen der zu behandelnden datenbanktheoretischen Ansätze erläutern.
@@ -43,6 +42,7 @@ DBMS -> Dateisystemtreiber -> Blockgerätetreiber -> HDD/SSD
 
 
 \section{Beispiel MySQL}
+In vielen Datenbanken steht mit dem SQL-Kommando EXPLAIN ein Werkzeug zur Werfügung, um mehr darüber zu erfahren, wie eine Datenbank eine bestimmte Anfrage ausführt, wie also der Euery Execution Plan (QEP) ist. Das EXPLAIN-Kommando gehört jedoch nicht zum SQL-Standard und wird bei den verschiedenen RDBMS unterschiedliche Ausgaben erzeugen. Bei MySQL ist EXPLAIN sehr mächtig und gibt umfassend und datailliert Auskunft über den QEP. Hierbei muss jedoch beachtet werden, dass der QEP nicht fix ist, sondern bei jeder Anfrage vom Optimierer erneut erstellt wird (sofern die Anfrage nicht bereits aus dem Query-Cache bedient werden kann). Es gibt daher auch keine Garantie, dass 
 
 \subsection{einfache Select-Anfragen (eine Tabelle)}
 
@@ -52,75 +52,91 @@ DELETE, INSERT, REPLACE, and UPDATE. Before MySQL 5.6.3, SELECT is the only expl
 \cite{refman1}
 
 \subsection{Die Spalten der EXPLAIN-Ausgabe}
-id\\*
-identifiziert das SELECT, zu dem die Zeile gehört, bei einfachen SELECT immer nur 1
+Als Ergebnis einer EXPLAIN-Anfrage liefert MySQL eine Tabelle mit festen Spalten und einer oder mehrerer Zeilen, je nach Komplexität ser Anfrage. Die einzelnen Spalten haben folgende Bedeutung:
 
-select\_type\\*
-einfaches oder komplexes SELECT
+\textbf{id}\\*
+Diese Zahl identifiziert das SELECT, zu dem die Zeile gehört. Bei einer einfachen SELECT-Abfrage steht in diesem Feld immer nur die 1.
+
+\textbf{select\_type}\\*
+Die Spalte gibt an, ob es sich um ein einfaches oder komplexes SELECT handelt. Folgende Werte können hierbei auftreten:
 \begin{description}
-	\item[SIMPLE] Einfaches select, keine Unterabfragen oder UNIONS
-	\item[PRIMARY] äußeres eines komplexen SELECT
-	\item[SUBQUERY] Select in einer Unterabfrage
-	\item[DERIVED] SELECT in Unterabfrage in FROM-Klausel
-	\item[UNION] zweites bzw. nachfolgende SELECT einer Union
-	\item[UNION RESULT] Ergebnis des UNION, wird aus temporärer Tabelle geholt.
+	\item[SIMPLE] einfaches SELECT, keine Unterabfragen oder UNIONS
+	\item[PRIMARY] äußeres SELECT eines komplexen SELECT
+	\item[SUBQUERY] SELECT in einer Unterabfrage
+	\item[DERIVED] SELECT in einer Unterabfrage in der FROM-Klausel
+	\item[UNION] zweites bzw. nachfolgende SELECT einer UNION
+	\item[UNION RESULT] Ergebnis des UNION, wird aus temporärer Tabelle geholt
 \end{description}
 
-table\\*
+\textbf{table}\\*
 auf welche Tabelle wird zugegriffen
 \begin{description}
 	\item Tabellenname oder Alias
 	\item Spalte von oben nach unten lesen
 \end{description}
 
-type:
-Wie ist der Zugriffstyp, wie wird MySQL die Zeilen in der Tabelle auffinden?
--ALL = Tablescan, Tabelle muss in der Regel von Anfang bis Ende durchlaufen werden
--index = Wie Tablescan, aber in Indexreihenfolge. Sortierung wird vermieden.
--range=Bereichsscan= eingeschränkter Indexscan, z.B bei BETWEEN oder WHERE x >
--ref = Indexzugriff, Index-Lookup, Zeilen entsprechen einem Wert, nur bei einem nichteindeutigen Index, Index wird mit einem Referenzwert verglichen. Variante: ref\_or\_null
--eq\_ref = Index-Lookup mit eindeutigem Treffer, bei Primärschlüssel oder eindeutigem Index
--const,system = konnte von MySQL wegoptimiert oder in eine Konstante umgewandelt werden.
--NULL = Abfrage kann von MySQL bei der Optimierung aufgelöst werden, kein Zugriff auf Tabelle oder Index, z.B. Minimum einer indizierten Spalte
+\textbf{type}\\*
+Wie ist der Zugriffstyp, wie wird MySQL die Zeilen in der Tabelle auffinden? Folgende Werte können hierbei auftreten (in geordneter Reihenfolge vom langsamsten zum schnellsten Zugriffstyp):
+\begin{description}
+\item[ALL] Tablescan, d.h. Tabelle muss in der Regel von Anfang bis Ende durchlaufen werden, ist ein starker Indiz für weiteren Optimierungsbedarf.
+\item[index] wie Tablescan, aber in Indexreihenfolge, eine Sortierung wird hierbei vermieden.
+\item[range] Bereichsscan, d.h. eingeschränkter Indexscan, z.B bei BETWEEN oder WHERE x >
+\item[ref] Indexzugriff findet statt, auch Index-Lookup genannt, Zeilen entsprechen einem Wert, nur bei einem nichteindeutigen Index, Index wird hierbei mit einem Referenzwert verglichen. Variante: ref\_or\_null
+\item[eq\_ref] Index-Lookup mit eindeutigem Treffer, bei Primärschlüssel oder eindeutigem Index
+\item[const,system] der Datenzugriff konnte von MySQL wegoptimiert oder in eine Konstante umgewandelt werden.
+\item[NULL] Abfrage kann von MySQL bei der Optimierung aufgelöst werden, kein Zugriff auf Tabelle oder Index, z.B. Minimum einer indizierten Spalte
+\end{description}
 
-possible\_keys:
--welche Indizes kömnnten benutzt werden
--frühe Phase der Optimierung
--können später nutzlos sein
+\textbf{possible\_keys}\\*
+Diese Spalte gibt an, welche Indizes für die Bearbeitung der Anfrage prinzipiell zur Verfügung stehen.
+Die hier stehenden Werte werden bereits in einer frühen Phase der Optimierung ermittelt, letzendlich wird in der Regel nur ein Index genutzt. Sind hier viele Indizes aufgeführt deutet das auf ein Problem hin.
 
-key:
--welchen Index wählt der Optimierer für die Abfrage
--auch abdeckende Indizes
+\textbf{key}\\*
+Die Spalte key gibt an, welcher Index der Optimierer für die Anfrage gewählt hat. Dies kann auch ein abdeckender Index sein, aus dem die Ergebniswerte gelesen werden können ohne dass die eigentliche Tabelle gelesen werden muss. Ein Wert von NULL in der Spalte key bedeutet, dass kein Index genutzt wird und ist ein starkes Indiz für einen Optimierungsbedarf.
 
-key\_len
--wie viel Byte (Spaltenbreite) eines Index werden benutzt
--welche Spalten des Index werden genutzt, von links beginnend
+\textbf{key\_len}\\*
+wie viel Byte (Spaltenbreite) eines Index werden benutzt
+welche Spalten des Index werden genutzt, von links beginnend
 
-ref
+\textbf{ref}\\*
 -welche Spalten aus früheren Tabellen werden benutzt, um in dem key-Index nachzuschlagen
 
-rows
--Schätzung, Anzahl der Zeilen, die gelesen werden müssen
--pro schleife im Nested-Loop-Join-Plan
--Schätzung kann ungenau sein
+\textbf{rows}\\*
+Die Zahl in der Spalte rows ist eine Schätzung für die Anzahl der Zeilen, die gelesen werden müssen.
+Bei Abfragen mit mehreren Tabellen bezieht sich diese Angabe pro Schleife im Nested-Loop-Join-Plan.
+Die Schätzung beruht auf Statistiken kann ungenau sein. Im besten Fall steht hier eine 1.
 
-filtered
--neu seit MySQL 5.1
--bei Explain EXTENDED
--pessimistische Schätzung des Prozentsatzes der Zeilen
+\textbf{filtered}\\*
+Die Spalte ist neu seit MySQL 5.1 und erescheint nur bei EXPLAIN EXTENDED.
+Es ist eine pessimistische Schätzung des Prozentsatzes der Zeilen,...
 
-Extra
--Using Index = abdeckender Index benutzt
--Using where = Zeilen nachträglich gefiltert, also nicht den Index für die WHERE-Bedingung genutzt
--Using temporary = temporäre Tabelle für Sortierung
--Using filesort = externe Sortierung, im RAM oder auf HDD
--ranke checked for each record (index map: N) = kein guter Index vorhanden
-EXPLAIN Output Format \cite{refman2}
+\textbf{Extra}\\*
+\begin{description}
+\item[Using Index] abdeckender Index wird genutzt, d.g. die angefragten Daten müssen nicht aus der Tabelle gelesen werden
+\item[Using where] die Zeilen werden nachträglich gefiltert, d.h. für die WHERE-Bedingung  wird nicht der Index genutzt
+\item[Using temporary] Erstellung einer temporäre Tabelle für Sortierung 
+\item[Using filesort] externe Sortierung, im RAM oder auf den Datenträger
+\item[ranke checked for each record (index map: N)] kein geeigneter Index vorhanden
+\end{description}
+vgl. \cite{refman2}
 
 \subsubsection{EXPLAIN EXTENDED}
+Extra Spalte filtered.
+
 \subsubsection{EXPLAIN PARTITIONS}
+Seit Mysql 5.1, extra Spalte Partitions
+
 \subsection{Abfragen mit mehreren Tabellen}
 \subsection{Optimierungsmöglichkeiten und Benchmarking}
+Wichtigsten Spalten key (benutzer Index), rows (Anzahl Zeilen bearbeitet), type
+
+QEP ist nicht fix, wird bei jeder Abfrage neu erstellt. Daher EXPLAIN einer Abfrage mit verschiedenen Beispielwerten.
+Nicht mit Test-Daten testen, sondern RealWord-Daten, z.B. Backups.
+
+ALTER TABLE users ADD INDEX
+
+Vorsicht beim Anlegen von INDIZES: Kann bei grossen Tabellen sehr lange Dauern und blockiert in dieser Zeit die Tabelle.
+Vorher Informationen über die Grösse der Tabellen holen, am besten einen Probedurchlauf auf einer Kopie machen.
 \subsection{Visuelles EXPLAIN (graphische Werkzeuge)}
 
 \section{Fazit und Ausblick}
