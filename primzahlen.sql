@@ -1,3 +1,8 @@
+-- Primzahlen bis 100 Mio. berechnen (Linux-Konsole)
+-- # primes 1 10 000 000 > /tmp/primes
+-- # sudo chown mysql:mysql /tmp/primes
+-- # mysql -u root -p
+
 DROP DATABASE IF EXISTS primetest;
 CREATE DATABASE primetest;
 USE primetest;
@@ -8,16 +13,88 @@ CREATE TABLE big (
 CREATE TABLE small (
 	q INT NOT NULL
 );
--- # primes 1 10000000 > /tmp/primes
--- # sudo chown mysql:mysql
+
 LOAD DATA INFILE "/tmp/primes" into table big;
-TRUNCATE `primetest`.`small`;
+>Query OK, 5761455 rows affected (49,15 sec)
+>Records: 5761455  Deleted: 0  Skipped: 0  Warnings: 0
+
 insert into small values (1),(2),(3),(4),(5),(6),(7),(8),(9),(10),
   (11),(12),(13),(14),(15),(16),(17),(18),(19),(20);
 
--- alle kleinen natürlichen Zahlen
-select q from small;
+-- Einfache SELECT-Abfragen mit einer Tabelle
+-- kleine natürliche Zahlen:
+select q from small where q < 10;
++---+
+| q |
++---+
+| 1 |
+| 2 |
+| 3 |
+| 4 |
+| 5 |
+| 6 |
+| 7 |
+| 8 |
+| 9 |
++---+
+9 rows in set (0,00 sec)
 
+-- QEP anzeigen:
+mysql> explain select q from small where q < 10;
++----+-------------+-------+------+---------------+------+---------+------+------+-------------+
+| id | select_type | table | type | possible_keys | key  | key_len | ref  | rows | Extra       |
++----+-------------+-------+------+---------------+------+---------+------+------+-------------+
+|  1 | SIMPLE      | small | ALL  | NULL          | NULL | NULL    | NULL |   20 | Using where |
++----+-------------+-------+------+---------------+------+---------+------+------+-------------+
+1 row in set (0,00 sec)
+
+
+--kleine Primzahlen:
+mysql> select p from big where p < 10;
++---+
+| p |
++---+
+| 2 |
+| 3 |
+| 5 |
+| 7 |
++---+
+4 rows in set (2,59 sec)
+
+
+-- QEP anzeigen
+mysql> explain select p from big where p < 10;
++----+-------------+-------+------+---------------+------+---------+------+---------+-------------+
+| id | select_type | table | type | possible_keys | key  | key_len | ref  | rows    | Extra       |
++----+-------------+-------+------+---------------+------+---------+------+---------+-------------+
+|  1 | SIMPLE      | big   | ALL  | NULL          | NULL | NULL    | NULL | 5751080 | Using where |
++----+-------------+-------+------+---------------+------+---------+------+---------+-------------+
+1 row in set (0,00 sec)
+
+-- grosse Primzahlen:
+mysql> select p from big where p > 99999900;
++----------+
+| p        |
++----------+
+| 99999931 |
+| 99999941 |
+| 99999959 |
+| 99999971 |
+| 99999989 |
++----------+
+5 rows in set (2,52 sec)
+
+-- QEP ist der gleiche wie bei kleinen Primzahlen
+mysql> explain select p from big where p > 99999900;
++----+-------------+-------+------+---------------+------+---------+------+---------+-------------+
+| id | select_type | table | type | possible_keys | key  | key_len | ref  | rows    | Extra       |
++----+-------------+-------+------+---------------+------+---------+------+---------+-------------+
+|  1 | SIMPLE      | big   | ALL  | NULL          | NULL | NULL    | NULL | 5751080 | Using where |
++----+-------------+-------+------+---------------+------+---------+------+---------+-------------+
+1 row in set (0,00 sec)
+
+
+-- komplexere SELECT-Abfragen mit mehreren Tabellen
 -- alle kleinen Primzahlen
 explain select q   from small,  big where small.q=big.p; -- 1,69 sec 1,7 sec 1,59 sec, 1,89 sec
 explain select q from small,   big where big.p=small.q; -- 2,04 sec 2,13 sec 2,18 Sek
