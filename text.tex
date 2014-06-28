@@ -6,7 +6,7 @@ Datenbank-Systeme finden heute in nahezu allen IT-Systemen Verwendung.
 Der Optimierung von Datenbank-Anfragen kommt daher eine große Bedeutung zu.
 Hierfür gibt es eine Vielzahl von Möglichkeiten, z.B. Latenz und Bandbreite der Anbindung der Datenbank, Leistungsfähigkeit des Datenbank-Servers, Anzahl der Datenbank-Anfragen im Programmcode, Cachingmeachanismen.
 
-Hat man andere Flaschenhälse ausgeschlossen oder bereits optimiert,  gilt es die für die Performance relevanten SQL-Abfragen des Systems zu identifizieren und gezielt zu optimieren. Dies können lange laufende Abfragen sein, die z.B. bei MySQLs mit der Logdatei für langsame Anfragen gezielt ermittelt werden können. Oftmals sind es aber auch viele einfache, kurze Abfragen, die jedoch zu Hunderten oder Tausenden pro Sekunde auftreten und so die Anwendung viel Zeit kosten und den Datenbank-Server belasten.
+Hat man andere Flaschenhälse ausgeschlossen oder bereits optimiert,  gilt es die für die Performance relevanten SQL-Abfragen des Systems zu identifizieren und gezielt zu optimieren. Dies können lange laufende Abfragen sein, die z.B. bei MySQL mit der Logdatei für langsame Anfragen gezielt ermittelt werden können. Oftmals sind es aber auch viele einfache, kurze Abfragen, die jedoch zu Hunderten oder Tausenden pro Sekunde auftreten und so die Anwendung viel Zeit kosten und den Datenbank-Server belasten.
 
 Viele RDBMS stellen mit dem SQL-Kommando EXPLAIN eine Möglichkeit zur Verfügung, mehr über die innere Arbeitsweise der Datenbank bei einer bestimmten SQL-Abfrage zu erfahren. Durch gezielte Veränderung der SQL-Abfrage oder des Datenschemas kann somit die Bearbeitung der Abfrage optimiert werden.
 
@@ -24,11 +24,11 @@ Es soll untersucht werden
 \subsection{Der physische Zugriff auf die Daten}
 Daten einer DB werden in der Regel auf einer Festplatte (HDD) oder einem Flash-Laufwerk (SSD) gespeichert.
 Das RDBMS nutzt dazu Funktionen des Betriebssystems auf verschiedenen Ebenen.
-Dateisystem-Treiber, nimmt Lese und Schreibanforderungen für Datensätze an und gibt rechnet diese in nie durchnumerierten Blöcke des Blockgerätes um. Der Blockgeräte-Treiber liest dann die entsprenden Blöcke von der Platte oder schreibt sie.
+Dateisystem-Treiber, nimmt Lese und Schreibanforderungen für Datensätze an und gibt rechnet diese in nie durchnumerierten Blöcke des Blockgerätes um. Der Blockgeräte-Treiber liest dann die entsprenden Blöcke von der Platte oder schreibt sie dort hin.
 
-DBMS -> Dateisystemtreiber -> Blockgerätetreiber -> HDD/SSD 
+DBMS <---> Dateisystemtreiber <---> Blockgerätetreiber <---> HDD/SSD 
 
- HDD-Blockgerätetreiber-Dateisystemtreiber-DBMS
+Auf den verschiedenen Ebenen findet hierbei Caching statt, um die relativ langsamen Zugriffe auf den Massenspeicher (HDD oder SSD) zu vermeiden oder zumindest zu bündeln. Die Reduzierung von Massenspeicher-Zugriffen ist  daher auch eine effektive Methode der DB-Anfrage-Optimierung.
 
 \subsection{Speicherstrukturen}
  Binärbaum:
@@ -38,24 +38,35 @@ DBMS -> Dateisystemtreiber -> Blockgerätetreiber -> HDD/SSD
 \subsection{Bearbeitung von SQL-Statements}
  Umsetzung in relationale Algebra
 
-\subsection{Optimierungen : frühzeitige Restriktionen, JOINs}
+\subsection{Optimierungen: frühzeitige Restriktionen, JOINs}
 
 
-\section{Beispiel MySQL}
-In vielen Datenbanken steht mit dem SQL-Kommando EXPLAIN ein Werkzeug zur Werfügung, um mehr darüber zu erfahren, wie eine Datenbank eine bestimmte Anfrage ausführt, wie also der Euery Execution Plan (QEP) ist. Das EXPLAIN-Kommando gehört jedoch nicht zum SQL-Standard und wird bei den verschiedenen RDBMS unterschiedliche Ausgaben erzeugen. Bei MySQL ist EXPLAIN sehr mächtig und gibt umfassend und datailliert Auskunft über den QEP. Hierbei muss jedoch beachtet werden, dass der QEP nicht fix ist, sondern bei jeder Anfrage vom Optimierer erneut erstellt wird (sofern die Anfrage nicht bereits aus dem Query-Cache bedient werden kann). Es gibt daher auch keine Garantie, dass 
+\section{MySQL-EXPLAIN}
+In vielen RDBMS steht mit dem SQL-Kommando EXPLAIN ein Werkzeug zur Werfügung, um mehr darüber zu erfahren, wie die Datenbank eine bestimmte Anfrage ausführt, wie also der Query Execution Plan (QEP) ist. Das EXPLAIN-Kommando gehört jedoch nicht zum SQL-Standard und wird bei den verschiedenen RDBMS unterschiedliche Ausgaben erzeugen. Bei MySQL ist EXPLAIN sehr mächtig und gibt umfassend und datailliert Auskunft über den QEP. Hierbei muss jedoch beachtet werden, dass der QEP nicht fix ist, sondern bei jeder Anfrage vom Optimierer erneut erstellt wird (sofern die Anfrage nicht bereits aus dem Query-Cache bedient werden kann). Es gibt daher keine Garantie, dass die Anfrage immer mit dem vorher von EXPLAIN gezeigten QEP ausgeführt wird. Es empfielt sich daher, die untersuchten SQL-Anfragen von Zeit zu Zeit erneut mit EXPLAIN zu prüfen - mit Real-World-Daten.
 
-\subsection{einfache Select-Anfragen (eine Tabelle)}
+\subsection{Einfache SELECT-Anfragen mit einer Tabelle}
 
-\subsection{Umschreiben von Nicht-Select-Anfragen}
-As of MySQL 5.6.3, permitted explainable statements for EXPLAIN are SELECT, 
-DELETE, INSERT, REPLACE, and UPDATE. Before MySQL 5.6.3, SELECT is the only explainable statement.
-\cite{refman1}
+\subsection{Umschreiben von Nicht-SELECT-Anfragen}
+Vor MySQL 5.6.3 konnte EXPLAIN nur auf SELECT-Anfragen angewendet werden. \cite{refman1}
+Einige Nicht-SELECT-Anfragen, wie DELETE, INSERT, REPLACE und UPDATE können jedoch in ein entsprechendes SELECT-Kommando umgeformt werden, um dieses dann mit EXPLAIN zu untersuchen. Zu beachten ist jedoch, daß schreibende Anweisungen generell aufwendiger sind als das entsprechende SELECT-Kommando, da zusätzlich zum Auffinden der Daten noch die Schreiboperation ausgeführt werden muss, ggf. kommen auch noch Aktualisierungen von Indizes hinzu.
+Beispiel:
+\begin{verbatim}
+  DELETE user WHERE last_login < '2012-01-01'
+\end{verbatim}
+kann zu folgendem SELECT umgeschrieben werden:
+\begin{verbatim}
+  SELECT id FROM user WHERE last_login < '2012-01-01'
+\end{verbatim}
+
+Ab MySQL 5.6.3 kann EXPLAIN auf SELECT, DELETE, INSERT, REPLACE und UPDATE angewendet werden.
 
 \subsection{Die Spalten der EXPLAIN-Ausgabe}
-Als Ergebnis einer EXPLAIN-Anfrage liefert MySQL eine Tabelle mit festen Spalten und einer oder mehrerer Zeilen, je nach Komplexität ser Anfrage. Die einzelnen Spalten haben folgende Bedeutung:
+Als Ergebnis einer EXPLAIN-Anfrage liefert MySQL eine Tabelle mit festen Spalten und einer oder mehrerer Zeilen, je nach Komplexität der Anfrage. Die einzelnen Spalten haben folgende Bedeutung (vgl. \cite{refman2}, 
+\cite{Schwartz2009} S. 665-676, 
+\cite{Bradford2011} Pos. 2696-2906):
 
 \textbf{id}\\*
-Diese Zahl identifiziert das SELECT, zu dem die Zeile gehört. Bei einer einfachen SELECT-Abfrage steht in diesem Feld immer nur die 1.
+Diese Zahl identifiziert das SELECT, zu dem die Zeile gehört. Bei einer einfachen SELECT-Abfrage steht in diesem Feld demnach immer nur die Zahl 1.
 
 \textbf{select\_type}\\*
 Die Spalte gibt an, ob es sich um ein einfaches oder komplexes SELECT handelt. Folgende Werte können hierbei auftreten:
@@ -69,18 +80,15 @@ Die Spalte gibt an, ob es sich um ein einfaches oder komplexes SELECT handelt. F
 \end{description}
 
 \textbf{table}\\*
-auf welche Tabelle wird zugegriffen
-\begin{description}
-	\item Tabellenname oder Alias
-	\item Spalte von oben nach unten lesen
-\end{description}
+Die Spalte Table gibt an, auf welche Tabelle zugegriffen wird. Dies kann der tatsächliche Tabellenname sein oder der Alias. Die Spalte ist von oben nach unten zu lesen, um die Join-Reihenfolge zu sehen, die der Optimierer für die Anfrage gewählt hat.
+Bei komlexeren Anfragen mit abgeleiteten Tabellen und Vereinigungen können hier noch weitere Werte auftreten: <derivedN> wenn es in der FROM-Klausel eine Unterabfrage gibt, wobei N die ID der Unterabfrage ist und in den nachfolgenden Zeilen der Ausgabe zu finden ist. Bei einer Vereinigung mit UNION enthält die UNION RESULT-Zeile in der table-Spalte die IDs der Abfragen, welche vereinigt werden, und beziehen sich daher immer auf vorhergehende Zeilen der Ausgabe, z.B. <union2,4>.
 
 \textbf{type}\\*
 Wie ist der Zugriffstyp, wie wird MySQL die Zeilen in der Tabelle auffinden? Folgende Werte können hierbei auftreten (in geordneter Reihenfolge vom langsamsten zum schnellsten Zugriffstyp):
 \begin{description}
-\item[ALL] Tablescan, d.h. Tabelle muss in der Regel von Anfang bis Ende durchlaufen werden, ist ein starker Indiz für weiteren Optimierungsbedarf.
-\item[index] wie Tablescan, aber in Indexreihenfolge, eine Sortierung wird hierbei vermieden.
-\item[range] Bereichsscan, d.h. eingeschränkter Indexscan, z.B bei BETWEEN oder WHERE x >
+\item[ALL] full Tablescan, d.h. Tabelle muss in der Regel von Anfang bis Ende durchlaufen werden, ist ein starker Indiz für weiteren Optimierungsbedarf
+\item[index] wie Tablescan, aber Scannen der Tabelle erfolgt in Indexreihenfolge, eine extra Sortierung wird hierbei vermieden
+\item[range] Bereichsscan, d.h. eingeschränkter Indexscan, z.B. bei BETWEEN oder > in der WHERE-Klausel
 \item[ref] Indexzugriff findet statt, auch Index-Lookup genannt, Zeilen entsprechen einem Wert, nur bei einem nichteindeutigen Index, Index wird hierbei mit einem Referenzwert verglichen. Variante: ref\_or\_null
 \item[eq\_ref] Index-Lookup mit eindeutigem Treffer, bei Primärschlüssel oder eindeutigem Index
 \item[const,system] der Datenzugriff konnte von MySQL wegoptimiert oder in eine Konstante umgewandelt werden.
@@ -107,24 +115,27 @@ Bei Abfragen mit mehreren Tabellen bezieht sich diese Angabe pro Schleife im Nes
 Die Schätzung beruht auf Statistiken kann ungenau sein. Im besten Fall steht hier eine 1.
 
 \textbf{filtered}\\*
-Die Spalte ist neu seit MySQL 5.1 und erescheint nur bei EXPLAIN EXTENDED.
-Es ist eine pessimistische Schätzung des Prozentsatzes der Zeilen,...
+Die Spalte ist neu seit MySQL 5.1 und erescheint nur bei EXPLAIN EXTENDED (s.u.).
+Es ist eine pessimistische Schätzung des Prozentsatzes der Zeilen, die eine Bedingung erfüllen, wie z.B. eine WHERE-Klausel oder ein JOIN mit einer anderen Tabelle.
 
 \textbf{Extra}\\*
+Die Extra-Spalte enthält weitere Angaben, die nicht in die anderen Spalten passen:
 \begin{description}
-\item[Using Index] abdeckender Index wird genutzt, d.g. die angefragten Daten müssen nicht aus der Tabelle gelesen werden
-\item[Using where] die Zeilen werden nachträglich gefiltert, d.h. für die WHERE-Bedingung  wird nicht der Index genutzt
+\item[Using Index] abdeckender Index wird genutzt, d.h. die angefragten Daten müssen nicht aus der Tabelle gelesen werden
+\item[Using where] die Zeilen werden nachträglich gefiltert, d.h. für die WHERE-Bedingung wird nicht der Index genutzt
 \item[Using temporary] Erstellung einer temporäre Tabelle für Sortierung 
 \item[Using filesort] externe Sortierung, im RAM oder auf den Datenträger
-\item[ranke checked for each record (index map: N)] kein geeigneter Index vorhanden
+\item[ranke checked for each record (index map: N)] kein geeigneter Index vorhanden, N ist ein Bitmap auf die Spalten in possible\_keys
 \end{description}
-vgl. \cite{refman2}
 
 \subsubsection{EXPLAIN EXTENDED}
-Extra Spalte filtered.
+Wird EXPLAIN EXTENDED anstatt von EXPLAIN verwendet, dann erscheint die zusätzliche Spalte \textbf{filtered}.
+Außerdem werden weitere Informationen generiert, die mit dem nachfolgenden SQL-Kommando SHOW WARNINGS angezeigt werden können.
+Eine ausführliche Beschreibung findet sich unter \cite{refman3}.
 
 \subsubsection{EXPLAIN PARTITIONS}
-Seit Mysql 5.1, extra Spalte Partitions
+Wird EXPLAIN PARTITIONS verwendet, dann zeigt zusätzlichen Spalte \textbf{partitions} die Partitionen, auf welche die Anfrage zugreift, sofern welche verfügbar sind. Diese Option ist erst seit MySQL 5.1 verfügbar.
+Das Schlüsselwort EXTENDED kann nicht zusammen mit EXPLAIN PARTITIONS verwendet werden.
 
 \subsection{Abfragen mit mehreren Tabellen}
 \subsection{Optimierungsmöglichkeiten und Benchmarking}
@@ -137,6 +148,9 @@ ALTER TABLE users ADD INDEX
 
 Vorsicht beim Anlegen von INDIZES: Kann bei grossen Tabellen sehr lange Dauern und blockiert in dieser Zeit die Tabelle.
 Vorher Informationen über die Grösse der Tabellen holen, am besten einen Probedurchlauf auf einer Kopie machen.
+
+Wird ein vorhandener Index bei der Anfrage nicht genutzt, obwohl er augenscheinlich genutzt werden sollte, dann kann das an veralteten Tabellen-Statistiken oder einer ungenügenden Stichprobe für die Statistiken liegen. Die Statistiken für eine Tabelle lassen sich dann mit ANALYZE TABLE Tabellenname aktualisieren.
+
 \subsection{Visuelles EXPLAIN (graphische Werkzeuge)}
 
 \section{Fazit und Ausblick}
