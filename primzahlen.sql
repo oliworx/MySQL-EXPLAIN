@@ -95,6 +95,53 @@ mysql> explain select p from big where p > 99999900;
 
 
 -- komplexere SELECT-Abfragen mit mehreren Tabellen
+-- Tabelle mit Deutschen Worten anlegen
+mysql> CREATE TABLE words ( 
+	id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, 
+	word VARCHAR(60) ) ENGINE=InnoDB; 
+Query OK, 0 rows affected (0,81 sec)
+
+-- deutsche Worte in die Tabelle laden
+mysql> LOAD DATA LOCAL INFILE '/usr/share/dict/ngerman' INTO TABLE words (word);
+Query OK, 339099 rows affected (6,58 sec)
+Records: 339099  Deleted: 0  Skipped: 0  Warnings: 0
+
+-- die 5 letzten wörter
+mysql> select word from words order by word desc limit 5;
++-----------+
+| word      |
++-----------+
+| zzgl      |
+| Zysten    |
+| Zyste     |
+| Zypressen |
+| Zypresse  |
++-----------+
+5 rows in set (0,20 sec)
+
+mysql> explain select word from words order by word desc limit 5;
++----+-------------+-------+------+---------------+------+---------+------+--------+----------------+
+| id | select_type | table | type | possible_keys | key  | key_len | ref  | rows   | Extra          |
++----+-------------+-------+------+---------------+------+---------+------+--------+----------------+
+|  1 | SIMPLE      | words | ALL  | NULL          | NULL | NULL    | NULL | 341202 | Using filesort |
++----+-------------+-------+------+---------------+------+---------+------+--------+----------------+
+1 row in set (0,00 sec)
+
+-- die ersten 5 "Prim-Worte"
+ mysql> select p,word from words, big where p=id order by word limit 5;
++--------+---------------+
+| p      | word          |
++--------+---------------+
+|     29 | Aachener      |
+|     31 | Aachenerinnen |
+| 113647 | aale          |
+| 113657 | aalglattem    |
+|     37 | Aargau        |
++--------+---------------+
+5 rows in set (22,45 sec)
+
+
+
 -- alle kleinen Primzahlen
 explain select q   from small,  big where small.q=big.p; -- 1,69 sec 1,7 sec 1,59 sec, 1,89 sec
 explain select q from small,   big where big.p=small.q; -- 2,04 sec 2,13 sec 2,18 Sek
