@@ -228,9 +228,9 @@ mysql> LOAD DATA INFILE "/tmp/primes" into table big;
 >Query OK, 5761455 rows affected (49,15 sec)
 >Records: 5761455  Deleted: 0  Skipped: 0  Warnings: 0
 \end{lstlisting}
-Diese soll nun mit der Tabelle words verknüpft werden, um die (alphabetisch sortierten) ersten fünf Worte auszugeben, die eine Primzahl als id haben.
+Diese soll nun mit der Tabelle \textbf{words} verknüpft werden, um die (alphabetisch sortierten) ersten fünf Worte auszugeben, welche eine Primzahl als id haben.
 \begin{lstlisting}
- mysql> select p,word from words, big where p=id order by word limit 5;
+mysql> SELECT p,word FROM words, big WHERE p=id ORDER BY word LIMIT 5;
 +--------+---------------+
 | p      | word          |
 +--------+---------------+
@@ -240,12 +240,29 @@ Diese soll nun mit der Tabelle words verknüpft werden, um die (alphabetisch sor
 | 113657 | aalglattem    |
 |     37 | Aargau        |
 +--------+---------------+
-5 rows in set (22,45 sec)
+5 rows in set (22,67 sec)
 \end{lstlisting}
 Mit über 22 Sekunden Laufzeit war diese relativ simple Anfrage für den Datenbank-Server sehr aufwendig.
+Mit EXPLAIN zeigt sich, warum die Ausführung der Anfrage so aufwendig war:
+\begin{lstlisting}[basicstyle=\ttfamily\tiny]
+mysql> EXPLAIN SELECT p,word FROM words, big WHERE p=id ORDER BY word LIMIT 5;
++----+-------------+-------+--------+---------------+---------+---------+-----------------+---------+---------------------------------+
+| id | select_type | table | type   | possible_keys | key     | key_len | ref             | rows    | Extra                           |
++----+-------------+-------+--------+---------------+---------+---------+-----------------+---------+---------------------------------+
+|  1 | SIMPLE      | big   | ALL    | NULL          | NULL    | NULL    | NULL            | 5672186 | Using temporary; Using filesort |
+|  1 | SIMPLE      | words | eq_ref | PRIMARY       | PRIMARY | 4       | primetest.big.p |       1 | Using where                     |
++----+-------------+-------+--------+---------------+---------+---------+-----------------+---------+---------------------------------+
+2 rows in set (0,00 sec)
+\end{lstlisting}
+Beide Zeilen haben die id 1, denn es handelt sich nur um ein SELECT. Die erste Zeile bezieht sich auf die Tabelle \textbf{big}. Diese Tabelle hat keinen Primärschlüssel und auch keinen anderen Index (possible\_keys=NULL, key=NULL). Daher muss sie komplett durchlaufen werden (type=ALL, rows=5672186). Außerdem wird die Tabelle auch noch nach dem kompletten Lesen sortiert(Extra=Using filesort). Dies alles ist für die Datenbank sehr aufwendig. Die zweite Zeile bezieht sich auf die Tabelle \textbf{words}. Hier kann der ZUgriff über den Primärschlussel erfolgen (key=PRIMARY), welcher ja immer UNIQUE ist. Von der Tabelle \textbf{words} wird deshalb pro gelesene Zeile von Tabelle \textbf{big} nur eine Zeile gelesen (rows=1). Allerding werden über 5 Mio. Zeilen von \textbf{big} gelesen.
 
 \subsection{Optimierungsmöglichkeiten und Benchmarking}
-Wichtigsten Spalten key (benutzer Index), rows (Anzahl Zeilen bearbeitet), type
+Bevor man die Datenbank optimiert und die SQL-Anfragen benchmarkt sollte man sicherstellen,
+daß der Query-Cache von MySQL nicht aktiv ist (query\_cache\_type=OFF und query\_cache\_size=0). MySQL kann sonst bei unverändertem SQL die Anfragen direkt aus dem Query-Cache bedienen. Eine Ausführungszeit von 1 ms ist ein Hinweis hierfür.\\
+Für die Optimierung sind die wichtigsten Spalten der EXPLAIN-Ausgabe \textbf{key} (benutzer Index), \textbf{rows} (Anzahl Zeilen bearbeitet) und \textbf{type} (Zugriffstyp).
+Bei dem oben genannten Beispiel kann man anhand dieser drei Spalten erkennen, daß der Zugriff auf die Primzahlen langsam ist, weil kein Primärschlüssel oder ein anderer Index existiert.
+Für einen neu anzulegenden Index kann hier das Schlüsselwort UNIQUE verwendet werden, da keine Zahl mehrfach in der Tabelle vorkommen kann:
+
 
 QEP ist nicht fix, wird bei jeder Abfrage neu erstellt. Daher EXPLAIN einer Abfrage mit verschiedenen Beispielwerten.
 Nicht mit Test-Daten testen, sondern RealWord-Daten, z.B. Backups.
