@@ -95,7 +95,7 @@ mysql> explain select p from big where p > 99999900;
 
 
 -- komplexere SELECT-Abfragen mit mehreren Tabellen
--- Tabelle mit Deutschen Worten anlegen
+-- Tabelle mit Worten anlegen
 mysql> CREATE TABLE words ( 
 	id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, 
 	word VARCHAR(60) ) ENGINE=InnoDB; 
@@ -106,7 +106,7 @@ mysql> LOAD DATA LOCAL INFILE '/usr/share/dict/ngerman' INTO TABLE words (word);
 Query OK, 339099 rows affected (6,58 sec)
 Records: 339099  Deleted: 0  Skipped: 0  Warnings: 0
 
--- die 5 letzten wörter
+-- die 5 letzten Wörter auswählen
 mysql> select word from words order by word desc limit 5;
 +-----------+
 | word      |
