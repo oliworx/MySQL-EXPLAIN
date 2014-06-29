@@ -150,6 +150,61 @@ mysql> EXPLAIN SELECT p,word FROM words, big WHERE p=id ORDER BY word LIMIT 5;
 +----+-------------+-------+--------+---------------+---------+---------+-----------------+---------+---------------------------------+
 2 rows in set (0,00 sec)
 
+-- Index anlegen:
+mysql> ALTER TABLE big ADD UNIQUE INDEX IX_P USING BTREE (p ASC);
+Query OK, 0 rows affected (48,53 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+-- wieder Primworte abfragen:
+mysql> SELECT p,word FROM words, big WHERE p=id ORDER BY word LIMIT 5;
++--------+---------------+
+| p      | word          |
++--------+---------------+
+|     29 | Aachener      |
+|     31 | Aachenerinnen |
+| 113647 | aale          |
+| 113657 | aalglattem    |
+|     37 | Aargau        |
++--------+---------------+
+5 rows in set (0,46 sec)
+
+
+mysql> EXPLAIN SELECT p,word FROM words, big WHERE p=id ORDER BY word LIMIT 5;
++----+-------------+-------+--------+---------------+------+---------+--------------------+--------+--------------------------+
+| id | select_type | table | type   | possible_keys | key  | key_len | ref                | rows   | Extra                    |
++----+-------------+-------+--------+---------------+------+---------+--------------------+--------+--------------------------+
+|  1 | SIMPLE      | words | ALL    | PRIMARY       | NULL | NULL    | NULL               | 341202 | Using filesort           |
+|  1 | SIMPLE      | big   | eq_ref | IX_P          | IX_P | 4       | primetest.words.id |      1 | Using where; Using index |
++----+-------------+-------+--------+---------------+------+---------+--------------------+--------+--------------------------+
+2 rows in set (0,00 sec)
+
+-- In Tabelle Words einen weiteren Index anlegen:
+mysql> ALTER TABLE words ADD INDEX IX_WORD USING BTREE (word ASC);
+Query OK, 0 rows affected (2,06 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+-- wieder Primworte abfragen:
+mysql> SELECT p,word FROM words, big WHERE p=id ORDER BY word LIMIT 5;
++--------+---------------+
+| p      | word          |
++--------+---------------+
+|     29 | Aachener      |
+|     31 | Aachenerinnen |
+| 113647 | aale          |
+| 113657 | aalglattem    |
+|     37 | Aargau        |
++--------+---------------+
+5 rows in set (0,00 sec)
+
+mysql> EXPLAIN SELECT p,word FROM words, big WHERE p=id ORDER BY word LIMIT 5;
++----+-------------+-------+--------+---------------+---------+---------+--------------------+------+--------------------------+
+| id | select_type | table | type   | possible_keys | key     | key_len | ref                | rows | Extra                    |
++----+-------------+-------+--------+---------------+---------+---------+--------------------+------+--------------------------+
+|  1 | SIMPLE      | words | index  | PRIMARY       | IX_WORD | 63      | NULL               |    5 | Using index              |
+|  1 | SIMPLE      | big   | eq_ref | IX_P          | IX_P    | 4       | primetest.words.id |    1 | Using where; Using index |
++----+-------------+-------+--------+---------------+---------+---------+--------------------+------+--------------------------+
+2 rows in set (0,00 sec)
+
 
 
 -- alle kleinen Primzahlen
@@ -162,7 +217,7 @@ select p,q from small,  big where big.p=small.q; -- 1,62 sec 1,766 sec 1,54 sec
 -- explain
 select p,'' from big where p between 5000000 and 5000100; -- 0,528 sec
 
--- Index anlegen mit UNIQUE
+-- Index anlegen ohne UNIQUE
 ALTER TABLE `primetest`.`big` 
 ADD INDEX `IX_P1` USING BTREE (`p` ASC);
 
