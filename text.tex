@@ -37,7 +37,7 @@ Schlüssel-Wert: München
 \end{lstlisting}
 Wird ein neuer Datensatz eingefügt, so wird dessen Schlüssel-Wert verglichen mit dem Schlüssel-Wert des Wurzel-Knotens und dann rekursiv auf der kleineren oder auf der grösseren Seite des Baumes einsortiert. So ensteht eine geordnete Struktur, welche durch Rekursion in sortierter Reihenfolge gelesen werden kann. Bei häufigen Schreibzugriffen kann es passieren, dass der Binärbaum entartet. Beispielsweise würden beim Einfügen von immer grösseren Werten die rechte Seite zu einer verketteten Liste entarten. Daher muss der Baum regelmässig neu generiert (ausbalanciert) werden, was sehr aufwendig ist. Ein anderer Nachteil ist, daß bei 1000 Datensätzen, bereits 10 Ebenen, also 10 Datenträger-Zugriffe nötig sein, bei 1 Mio. Datensätzen, sind es bereits 20 Datenträgerzugriffe, also ein Zeitaufwand von etwa 0,2 Sekunden zum Auffinden eines Datensatzes (vgl. \cite{Sauer1998}, S. 147f).
 \subsubsection{B-Baum}
-Im Jahre 1971 wurde das Prinzip der Binärbäume von R. Bayer und E. McCraight erheblich verbessert.
+Im Jahre 1971 wurde das Prinzip der Binärbäume von R. Bayer und E. McCraight erheblich verbessert (vgl. \cite{Bayer1972}).
 Da eine Speicherseite auf dem Datenträger in der Regel mehr Speicherplatz bietet als für einen Binärbaumknoten benötigt, kann man auch in einem Knoten mehr Datensatz und Schlüssel zu Unterknoten unterbringen als in einem Binärbaumknoten. Der Baum wird dadurch breiter und flacher, mit der Folge, dass bei vielen Datensätzen weniger Knoten durchsucht werden müssen als bei dem Binärbaum. Der Verzweigungsgrad (oder die Ordnung) wird dabei von dem Algotithmus immer optimal gehalten. Der B-Baum ist dadurch automatisch immer ausbalanciert. Seit der Veröffentlichung von Bayer und McCraight 1972 wurden das Prinzip der B-Bäume mehrfach weiter verfeinert und führte zur Entwicklung der RDBMS. Heute kommt diese Datenstruktue in praktisch allen Datenbanken zur Anwendung.\\
 \begin{figure}[h]
 \includegraphics[width=.85\textwidth]{img/B-tree.png}
@@ -45,8 +45,6 @@ Da eine Speicherseite auf dem Datenträger in der Regel mehr Speicherplatz biete
 \label{bbaum}
 \end{figure}
 \\Der Vorteil des B-Baumes degebüber dem Binärbaum ist, dass weniger Zugriffe auf den Massenspeicher notwendig sind, um zu einem Datensatz zu gelangen. Im schlechtesten Fall sind O(log(n)) Knoten zu durchsuchen. Wie auch bim Binärbaum ist beim B-Baum ein schneller Zugriff auf einen Bereich oder auf das Minimum bzw. Maximum der Daten möglich, da die Datensätze in einer definierten Ordnung abgelegt sind.
-
-(vgl. \cite{Bayer1972})
 
 \subsubsection{Hashing}
 Eine Methode um schnell auf einenDatensatz zuzugreifen ist das Hash-Verfahren. Hierbei wird der Schlüssel des Datensatzes mit einer Hash-Funktion auf eine RID abgebildet. Eine Hash-Funktion ist jedoch keine eieindeutige Abbildung, daher kann es auch zu Kollisionen kommen, mehrere Datensätze können also auf die gleiche RID abgebildet werden. In einem solchen Fall müssen dann weitere Mechanismen dafür sorgen, dass die Daten an einer anderen Stelle gespeichert und wieder aufgefunden werden können. Z.B. kann die durch nochmalige Anwendung der Hash-Funktion erfolgen oder durch einen zusätzlichen Überlaufbereich, der die Daten einfach sequentiell speichert. Damit es möglichst selten zu Kollisionen kommt und der Zugriff dadurch verlangsamt wird, muss der für die Daten reservierte Speicher gross genug gewählt werden(vgl. \cite{Sauer1998}, S. 153f).
@@ -79,11 +77,10 @@ Der grösste Nachteil ist die fehlender Sortierung der Daten. Bei einem Zugriff 
 \subsubsection{Heap} 
 Bei einem Heap (deutsch: Haufen) werden alle Datensätze einfach der Reihe nach auf dem Datenträger abgelegt. Um auf einen bestimmten Datensatz zuzugreifen, muss daher immer der gesamte Heap gelesen werden. Dies ist bei grossen Tabellen in der Regel ungünstig, kann jedoch eine Möglichkeit für kleinere Tabellen sein, die einen Umfang von einigen wenigen Speicherseiten haben, da diese komplett in den Datencache passen oder ggf. mit nur einem Datenträgerzugriff gelesen werden können.
 
-\subsection{Bearbeitung von SQL-Statements}
-Umsetzung in relationale Algebra
+\subsection{Abarbeitung von SQL-Ausdrücken}
+Als Programmiersprache gehört SQL zu den 4GL-Sprachen. Das bedeutet, im Gegensatz zu den Programmiersprachen der 3. Generation wird nicht beschrieben WIE ein Ergebnis ermittelt werden soll sondern WELCHES Ergebnis ermittelt werden soll. Das Problem wird bei SQL also auf einem anderen semantischen Level beschrieben. Intern muss jedoch die Abfrage wieder in einen linearen Programmcode umgewandelt werden, der von der CPU bearbeitet werden kann. Dies resultiert dann zu mehr oder weniger verschachtelten Schleifen, je nach Anzahl der Tabellen, die miteinander verknüpft werden.
+Sind mehrere Tabellen in die Abfrage involviert, so muss das RDBMS deren karthesische Produkt bilden um dann das Ergebnis gemäß der Bedingungen in der WHERE-Klausen einzuschränken. Wenn auf die verknüpften Spalten nicht über Indizes zugegriffen werden kann, dann müssen tatsächlich alle möglichen Kombinationen geprüft werden.
 
-\subsection{einfache Optimierungen}
-frühzeitige Restriktionen, JOINs
 \section{MySQL-EXPLAIN}
 In vielen RDBMS steht mit dem SQL-Kommando EXPLAIN ein Werkzeug zur Werfügung, um mehr darüber zu erfahren, wie die Datenbank eine bestimmte Anfrage ausführt, wie also der Query Execution Plan (QEP) ist. Das EXPLAIN-Kommando gehört jedoch nicht zum SQL-Standard und wird bei den verschiedenen RDBMS unterschiedliche Ausgaben erzeugen. Bei MySQL ist EXPLAIN sehr mächtig und gibt umfassend und datailliert Auskunft über den QEP. Hierbei muss jedoch beachtet werden, dass der QEP nicht fix ist, sondern bei jeder Anfrage vom Optimierer erneut erstellt wird (sofern die Anfrage nicht bereits aus dem Query-Cache bedient werden kann). Es gibt daher keine Garantie, dass die Anfrage immer mit dem vorher von EXPLAIN gezeigten QEP ausgeführt wird. Es empfielt sich daher, die untersuchten SQL-Anfragen von Zeit zu Zeit erneut mit EXPLAIN zu prüfen - mit Real-World-Daten.
 
@@ -98,7 +95,7 @@ kann zu folgendem SELECT umgeschrieben werden:
 \begin{lstlisting}
   SELECT id FROM user WHERE last_login < '2012-01-01'
 \end{lstlisting}
-Ab MySQL 5.6.3 kann EXPLAIN auf SELECT, DELETE, INSERT, REPLACE und UPDATE angewendet werden.
+Ab MySQL 5.6.3 kann EXPLAIN auf SELECT, DELETE, INSERT, REPLACE und UPDATE angewendet werden.\cite{refman1}
 
 \subsection{Einfache SELECT-Anfragen mit einer Tabelle}
 An einem Beispiel einer einfachen SELECT-Anfrage soll gezeigt werden, wie die Ausgabe einer EXPLAIN-Anweisung aufgebaut ist.
@@ -198,8 +195,11 @@ Bei Abfragen mit mehreren Tabellen bezieht sich diese Angabe pro Schleife im Nes
 Die Schätzung beruht auf Statistiken kann ungenau sein. Im besten Fall steht hier eine 1.
 
 \textbf{filtered}\\*
-Die Spalte ist neu seit MySQL 5.1 und erescheint nur bei EXPLAIN EXTENDED (s.u.).
+Die Spalte ist neu seit MySQL 5.1 und erscheint nur bei EXPLAIN EXTENDED (s.u.).
 Es ist eine pessimistische Schätzung des Prozentsatzes der Zeilen, die eine Bedingung erfüllen, wie z.B. eine WHERE-Klausel oder ein JOIN mit einer anderen Tabelle.
+
+\textbf{partitions}\\*
+zeigt bei EXPLAIN PARTITIONS die verwendeten Partitionen (s.u.)
 
 \textbf{Extra}\\*
 Die Extra-Spalte enthält weitere Angaben, die nicht in die anderen Spalten passen:
