@@ -35,10 +35,38 @@ Schlüssel-Wert: München
    kleiner-RID:    34
     größer-RID:    55
 \end{lstlisting}
-Wird ein neuer Datensatz eingefügt, so wird dessen Schlüssel-Wert verglichen mit dem Schlüssel-Wert des Wurzel-Knotens und dann rekursiv auf der kleineren oder auf der grösseren Seite des Baumes einsortiert. So ensteht eine geordnete Struktur, welche durch Rekursion in sortierter Reihenfolge gelesen werden kann. Bei häufigen Schreibzugriffen kann es passieren, dass der Binärbaum entartet. Beispielsweise würden beim Einfügen von immer grösseren Werten die rechte Seite zu einer verketteten Liste entarten. Daher muss der Baum regelmässig neu generiert (ausbalanciert) werden, was sehr aufwendig ist. Ein anderer Nachteil ist, daß bei 1000 Datensätzen, bereits 10 Ebenen, also 10 Datenträger-Zugriffe nötig sein, bei 1 Mio. Datensätzen, sind es bereits 20 Datenträgerzugriffe, also ein Zeitaufwand von etwa 0,2 Sekunden zum Auffinden eines Datensatzes(vgl. \cite{Sauer1998}, S. 147f).
+Wird ein neuer Datensatz eingefügt, so wird dessen Schlüssel-Wert verglichen mit dem Schlüssel-Wert des Wurzel-Knotens und dann rekursiv auf der kleineren oder auf der grösseren Seite des Baumes einsortiert. So ensteht eine geordnete Struktur, welche durch Rekursion in sortierter Reihenfolge gelesen werden kann. Bei häufigen Schreibzugriffen kann es passieren, dass der Binärbaum entartet. Beispielsweise würden beim Einfügen von immer grösseren Werten die rechte Seite zu einer verketteten Liste entarten. Daher muss der Baum regelmässig neu generiert (ausbalanciert) werden, was sehr aufwendig ist. Ein anderer Nachteil ist, daß bei 1000 Datensätzen, bereits 10 Ebenen, also 10 Datenträger-Zugriffe nötig sein, bei 1 Mio. Datensätzen, sind es bereits 20 Datenträgerzugriffe, also ein Zeitaufwand von etwa 0,2 Sekunden zum Auffinden eines Datensatzes (vgl. \cite{Sauer1998}, S. 147f).
 \subsubsection{B-Baum}
-\subsubsection{Hashing} 
+\subsubsection{Hashing}
+Eine Methode um schnell auf einenDatensatz zuzugreifen ist das Hash-Verfahren. Hierbei wird der Schlüssel des Datensatzes mit einer Hash-Funktion auf eine RID abgebildet. Eine Hash-Funktion ist jedoch keine eieindeutige Abbildung, daher kann es auch zu Kollisionen kommen, mehrere Datensätze können also auf die gleiche RID abgebildet werden. In einem solchen Fall müssen dann weitere Mechanismen dafür sorgen, dass die Daten an einer anderen Stelle gespeichert und wieder aufgefunden werden können. Z.B. kann die durch nochmalige Anwendung der Hash-Funktion erfolgen oder durch einen zusätzlichen Überlaufbereich, der die Daten einfach sequentiell speichert. Damit es möglichst selten zu Kollisionen kommt und der Zugriff dadurch verlangsamt wird, muss der für die Daten reservierte Speicher gross genug gewählt werden(vgl. \cite{Sauer1998}, S. 153f).
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize\singlespacing, commentstyle=,language=]
+                                           +------+-----+---------+
+                                           | RID  |Kdnr | Name    |
+                                           |------|-----|---------|
+                                           | 1000 |     |         |
+  +-----+---------+                        | 1001 | 156 | Huber   |
+  |Kdnr | Name    |                        | 1002 | 125 | Bauer   |
+  |-----|---------|                        |  .   |     |         |
+  | 123 | Bayer   |                        |  .   |     |         |
+  | 124 | Schmidt |      hash(Kdnr)=RID    |  .   |     |         |
+  | 125 | Bauer   |  ------------------->  |  .   |     |         |
+  | 133 | Schulz  |                        |  .   |     |         |
+  | 156 | Huber   |                        | 1250 | 123 | Bayer   |
+  +-----+---------+                        |  .   |     |         |
+                                           |  .   |     |         |
+                                           |  .   |     |         |
+                                           |  .   |     |         |
+                                           | 2590 | 133 | Schulz  |
+                                           |  .   |     |         |
+                                           |  .   |     |         |
+                                           | 3003 | 124 | Schmidt |
+                                           +------+-----+---------+
+\end{lstlisting}
+Der Vorteil des Hashing besteht darin, dass die Zugriffszeit nahezu unabhänging von der Tabellengrösse ist (jedoch abhängig vom Füllgrad). In der Regel kann mit einem oder zwei Datenträgerzugriffen der Datensatz gefunden werden.
+Der grösste Nachteil ist die fehlender Sortierung der Daten. Bei einem Zugriff auf einen Bereich (WHERE Name LIKE 'B%') muss die gesamte Tabelle durchsucht werden. Außerdem wird immer ein gewisser Teil des Speicherplatz verschwendet.
+
 \subsubsection{Heap} 
+Bei einem Heap (deutsch: Haufen) werden alle Datensätze einfach der Reihe nach auf dem Datenträger abgelegt. Um auf einen bestimmten Datensatz zuzugreifen, muss daher immer der gesamte Heap gelesen werden. Dies ist bei grossen Tabellen in der Regel ungünstig, kann jedoch eine Möglichkeit für kleinere Tabellen sein, die einen Umfang von einigen wenigen Speicherseiten haben, da diese komplett in den Datencache passen oder ggf. mit nur einem Datenträgerzugriff gelesen werden können.
 
 \subsection{Bearbeitung von SQL-Statements}
 Umsetzung in relationale Algebra
