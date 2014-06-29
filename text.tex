@@ -1,7 +1,4 @@
-
 \section{Einleitung}
-
-\subsection{Problemstellung}
 Datenbank-Systeme finden heute in nahezu allen IT-Systemen Verwendung.
 Der Optimierung von Datenbank-Anfragen kommt daher eine große Bedeutung zu.
 Hierfür gibt es eine Vielzahl von Möglichkeiten, z.B. Latenz und Bandbreite der Anbindung der Datenbank, Leistungsfähigkeit des Datenbank-Servers, Anzahl der Datenbank-Anfragen in der Anwendung und diverse Caching-Meachanismen.
@@ -27,17 +24,27 @@ DBMS <---> Dateisystemtreiber <---> Blockgerätetreiber <---> HDD/SSD
 Auf den verschiedenen Ebenen findet hierbei Caching statt, um die relativ langsamen Zugriffe auf den Massenspeicher (HDD oder SSD) zu vermeiden oder zumindest zu bündeln. Die Reduzierung von Massenspeicher-Zugriffen ist  daher auch eine effektive Methode der DB-Anfrage-Optimierung.
 
 \subsection{Speicherstrukturen}
+Um die Daten einer Datenbank persistent zu speichern, werden diese auf einem Massenspeicher (HDD oder SSD)  abgelegt. Auf dieses sog. Blockgerät kann immer nur in Datenblöcken fester Grösse, auch Pages oder Seiten genannt, zugegriffen werden. MySQL speichert jede Tabelle in einer eigenen Datei, für einen Zugriff auf einen bestimmten Datensatz muss daher dessen Position innerhalb der Datei bekannt sein (Record-ID, RID). Andere Datenbanken wie SAP MaxDB oder Oracle speichern alle Tabellen in einer Datei (sog. Tablespace), die vorher mit einer festen Größe angelegt werden muß, um den Speicherplatz für die Daten zu reservieren (vgl. \cite{Sauer1998}, S. 145f). Es ist auch möglich, eine ganze Partition oder ein ganzes physisches Laufwerk für den Tablespace zu verwenden, womit der Overhead des Dateisystems vermieden wird und schneller auf die Datensätze zugegriffen werden kann.
 
- Binärbaum:
-
- B-Baum, Hashing, Heap
+Ein Grundproblem bei Datenbanken ist es, einen bestimmten Datensatz schnell aufzufinden, denn bei grossen Tabellen ist es nicht praktikabel, dafür die gesamte Tabelle zu durchsuchen. Deswegen wurden verschiedene Algorithmen und Speicherstrukturen entwickelt, die den Zugriff auf einen Datensatz mit möglichst wenig Datenträgerzugriffen ermöglichen. Heutige Festplattenlaufwerke erlauben bei Zugriffszeiten von 10ms ca. 100 zufällige Zugriffe pro Sekunden, viele Grössenordnungen langsamer als Zugriffe im RAM. Mit dem Aufkommen erschwinglicher SSDs mit einigen 10.000 bis zu einigen 100.000 Zugriffen pro Sekunde ist das Problem etwas entschärft aber immer noch vorhanden. Im folgenden werden einige Speicherstrukturen vorgestellt, die jedoch nicht alle bei einem RDBMS implementiert sein müssen.
+\subsubsection{Binärbaum}
+Der Binärbaum ist einer baumartige Zeigerstruktur, bei der jeder Knoten die Daten selbst (oder einen Zeiger auf die Daten) und zwei Zeiger auf weitere Knoten oder Blätter enthält. Ein Zeiger zeigt auf einen kleinere Datensatz und ein Zeiger zeigt auf einen größeren Datensatz. Ein Knoten hat also prinzipiell folgenden Aufbau:
+\begin{lstlisting}
+           RID:    14
+Schlüssel-Wert: München
+   kleiner-RID:    34
+    größer-RID:    55
+\end{lstlisting}
+Wird ein neuer Datensatz eingefügt, so wird dessen Schlüssel-Wert verglichen mit dem Schlüssel-Wert des Wurzel-Knotens und dann rekursiv auf der kleineren oder auf der grösseren Seite des Baumes einsortiert. So ensteht eine geordnete Struktur, welche durch Rekursion in sortierter Reihenfolge gelesen werden kann. Bei häufigen Schreibzugriffen kann es passieren, dass der Binärbaum entartet. Beispielsweise würden beim Einfügen von immer grösseren Werten die rechte Seite zu einer verketteten Liste entarten. Daher muss der Baum regelmässig neu generiert (ausbalanciert) werden, was sehr aufwendig ist. Ein anderer Nachteil ist, daß bei 1000 Datensätzen, bereits 10 Ebenen, also 10 Datenträger-Zugriffe nötig sein, bei 1 Mio. Datensätzen, sind es bereits 20 Datenträgerzugriffe, also ein Zeitaufwand von etwa 0,2 Sekunden zum Auffinden eines Datensatzes(vgl. \cite{Sauer1998}, S. 147f).
+\subsubsection{B-Baum}
+\subsubsection{Hashing} 
+\subsubsection{Heap} 
 
 \subsection{Bearbeitung von SQL-Statements}
- Umsetzung in relationale Algebra
+Umsetzung in relationale Algebra
 
-\subsection{Optimierungen: frühzeitige Restriktionen, JOINs}
-
-
+\subsection{einfache Optimierungen}
+frühzeitige Restriktionen, JOINs
 \section{MySQL-EXPLAIN}
 In vielen RDBMS steht mit dem SQL-Kommando EXPLAIN ein Werkzeug zur Werfügung, um mehr darüber zu erfahren, wie die Datenbank eine bestimmte Anfrage ausführt, wie also der Query Execution Plan (QEP) ist. Das EXPLAIN-Kommando gehört jedoch nicht zum SQL-Standard und wird bei den verschiedenen RDBMS unterschiedliche Ausgaben erzeugen. Bei MySQL ist EXPLAIN sehr mächtig und gibt umfassend und datailliert Auskunft über den QEP. Hierbei muss jedoch beachtet werden, dass der QEP nicht fix ist, sondern bei jeder Anfrage vom Optimierer erneut erstellt wird (sofern die Anfrage nicht bereits aus dem Query-Cache bedient werden kann). Es gibt daher keine Garantie, dass die Anfrage immer mit dem vorher von EXPLAIN gezeigten QEP ausgeführt wird. Es empfielt sich daher, die untersuchten SQL-Anfragen von Zeit zu Zeit erneut mit EXPLAIN zu prüfen - mit Real-World-Daten.
 
@@ -45,20 +52,19 @@ In vielen RDBMS steht mit dem SQL-Kommando EXPLAIN ein Werkzeug zur Werfügung, 
 Vor MySQL 5.6.3 konnte EXPLAIN nur auf SELECT-Anfragen angewendet werden. \cite{refman1}
 Einige Nicht-SELECT-Anfragen, wie DELETE, INSERT, REPLACE und UPDATE können jedoch in ein entsprechendes SELECT-Kommando umgeformt werden, um dieses dann mit EXPLAIN zu untersuchen. Zu beachten ist jedoch, daß schreibende Anweisungen generell aufwendiger sind als das entsprechende SELECT-Kommando, da zusätzlich zum Auffinden der Daten noch die Schreiboperation ausgeführt werden muss, ggf. kommen auch noch Aktualisierungen von Indizes hinzu.
 Beispiel:
-\begin{verbatim}
+\begin{lstlisting}
   DELETE user WHERE last_login < '2012-01-01'
-\end{verbatim}
+\end{lstlisting}
 kann zu folgendem SELECT umgeschrieben werden:
-\begin{verbatim}
+\begin{lstlisting}
   SELECT id FROM user WHERE last_login < '2012-01-01'
-\end{verbatim}
-
+\end{lstlisting}
 Ab MySQL 5.6.3 kann EXPLAIN auf SELECT, DELETE, INSERT, REPLACE und UPDATE angewendet werden.
 
 \subsection{Einfache SELECT-Anfragen mit einer Tabelle}
 An einem Beispiel einer einfachen SELECT-Anfrage soll gezeigt werden, wie die Ausgabe einer EXPLAIN-Anweisung aufgebaut ist.
-Hierzu wir zur Demonstation zuerst eine Tabelle mit einigen Daten erzeugt:
-\begin{spacing}{1}\begin{verbatim}
+Hierzu wird zur Demonstation zuerst eine Tabelle mit einigen Daten erzeugt:
+\begin{lstlisting}
 mysql> CREATE TABLE words ( 
        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, 
        word VARCHAR(60) ) ENGINE=InnoDB; 
@@ -69,11 +75,10 @@ mysql> LOAD DATA LOCAL INFILE '/usr/share/dict/ngerman'
        INTO TABLE words (word);
 Query OK, 339099 rows affected (6,58 sec)
 Records: 339099  Deleted: 0  Skipped: 0  Warnings: 0
-\end{verbatim}\end{spacing}
+\end{lstlisting}
 Es wurden also 339099 Zeilen bzw. Wörter in die Tabelle importiert, die id-Spalte hat MySQL dabei automatisch gefüllt und hochgezählt.
-Nun sollen beispielhaft die fünf alphabetisch letzten Worte abgefragt werden. Anschließend wird mit vorangestelltem EXPLAIN der entsprechende QEP angezeigt:
-\begin{spacing}{1}
-\begin{verbatim}
+Nun sollen beispielhaft die fünf alphabetisch letzten Worte abgefragt werden:
+\begin{lstlisting}
 mysql> SELECT word FROM words ORDER BY word DESC LIMIT 5;
 +-----------+
 | word      |
@@ -85,7 +90,9 @@ mysql> SELECT word FROM words ORDER BY word DESC LIMIT 5;
 | Zypresse  |
 +-----------+
 5 rows in set (0,20 sec)
-
+\end{lstlisting}
+Durch Voranstellen von EXPLAIN lässt sich der QEP der SELECT-Anfrage anzeigen:
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize]
 mysql> EXPLAIN SELECT word FROM words ORDER BY word DESC LIMIT 5;
 +----+-------------+-------+------+---------------+------+---------+------+--------+----------------+
 | id | select_type | table | type | possible_keys | key  | key_len | ref  | rows   | Extra          |
@@ -93,7 +100,9 @@ mysql> EXPLAIN SELECT word FROM words ORDER BY word DESC LIMIT 5;
 |  1 | SIMPLE      | words | ALL  | NULL          | NULL | NULL    | NULL | 341202 | Using filesort |
 +----+-------------+-------+------+---------------+------+---------+------+--------+----------------+
 1 row in set (0,00 sec)
-\end{verbatim}\end{spacing}
+\end{lstlisting}
+Wie man erkennt, wurde das EXPLAIN-Kommando schneller ausgeführt als das eigentliche SELECT.
+Dies liegt daran, daß EXPLAIN nicht tatsächlich auf die Daten in der Tabelle zugreift, sondern nur aufzeigt, wie die Datenbank die Datensätze auffinden würde.
 
 \subsection{Die Spalten der EXPLAIN-Ausgabe}
 Als Ergebnis einer EXPLAIN-Anfrage liefert MySQL eine Tabelle mit festen Spalten und einer oder mehrerer Zeilen, je nach Komplexität der Anfrage. Die einzelnen Spalten haben folgende Bedeutung (vgl. \cite{refman2}, 
