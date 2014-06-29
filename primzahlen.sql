@@ -128,7 +128,7 @@ mysql> explain select word from words order by word desc limit 5;
 1 row in set (0,00 sec)
 
 -- die ersten 5 "Prim-Worte"
- mysql> select p,word from words, big where p=id order by word limit 5;
+mysql> SELECT p,word FROM words, big WHERE p=id ORDER BY word LIMIT 5;
 +--------+---------------+
 | p      | word          |
 +--------+---------------+
@@ -138,7 +138,17 @@ mysql> explain select word from words order by word desc limit 5;
 | 113657 | aalglattem    |
 |     37 | Aargau        |
 +--------+---------------+
-5 rows in set (22,45 sec)
+5 rows in set (22,67 sec)
+
+
+mysql> EXPLAIN SELECT p,word FROM words, big WHERE p=id ORDER BY word LIMIT 5;
++----+-------------+-------+--------+---------------+---------+---------+-----------------+---------+---------------------------------+
+| id | select_type | table | type   | possible_keys | key     | key_len | ref             | rows    | Extra                           |
++----+-------------+-------+--------+---------------+---------+---------+-----------------+---------+---------------------------------+
+|  1 | SIMPLE      | big   | ALL    | NULL          | NULL    | NULL    | NULL            | 5672186 | Using temporary; Using filesort |
+|  1 | SIMPLE      | words | eq_ref | PRIMARY       | PRIMARY | 4       | primetest.big.p |       1 | Using where                     |
++----+-------------+-------+--------+---------------+---------+---------+-----------------+---------+---------------------------------+
+2 rows in set (0,00 sec)
 
 
 
