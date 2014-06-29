@@ -1,4 +1,4 @@
-% Kompilieren mit XeLaTeX
+% Kompilieren mit TeXworks/ XeLaTeX
 \documentclass[12pt,german,a4paper]{scrartcl}
 
 % Abstand des Textes vom Rand sollte sich an folgenden Richtwerten orientieren: 
@@ -32,6 +32,20 @@
 \usepackage{setspace}
 \onehalfspacing
 
+\usepackage{color}
+
+% für Code-Listings
+\usepackage{listings}
+\lstset{
+    keywordstyle=\color{black}
+  , language = SQL
+  , basicstyle=\ttfamily\singlespacing,
+  , columns=flexible 
+  , keepspaces=true,
+  , morekeywords = {EXPLAIN, UNSIGNED, ENGINE, AUTO_INCREMENT, LOAD, DATA, INFILE}
+  , showstringspaces=false
+  } 
+
 % fuer Zitate
 % \usepackage[round]{natbib}
 
@@ -47,6 +61,7 @@
 \setlength{\parskip}{\baselineskip} % Abstand zwischen Absätzen
 \setlist{nolistsep} % kein Abstand bei Listen zwischen den Items
 %\renewcommand{\familydefault}{\sfdefault} % Schriftfamilie
+
 
 \addtokomafont{sectioning}{\rmfamily}
 
