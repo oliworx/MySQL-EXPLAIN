@@ -4,21 +4,17 @@
 \subsection{Problemstellung}
 Datenbank-Systeme finden heute in nahezu allen IT-Systemen Verwendung.
 Der Optimierung von Datenbank-Anfragen kommt daher eine große Bedeutung zu.
-Hierfür gibt es eine Vielzahl von Möglichkeiten, z.B. Latenz und Bandbreite der Anbindung der Datenbank, Leistungsfähigkeit des Datenbank-Servers, Anzahl der Datenbank-Anfragen im Programmcode, Cachingmeachanismen.
-
+Hierfür gibt es eine Vielzahl von Möglichkeiten, z.B. Latenz und Bandbreite der Anbindung der Datenbank, Leistungsfähigkeit des Datenbank-Servers, Anzahl der Datenbank-Anfragen in der Anwendung und diverse Caching-Meachanismen.
 Hat man andere Flaschenhälse ausgeschlossen oder bereits optimiert,  gilt es die für die Performance relevanten SQL-Abfragen des Systems zu identifizieren und gezielt zu optimieren. Dies können lange laufende Abfragen sein, die z.B. bei MySQL mit der Logdatei für langsame Anfragen gezielt ermittelt werden können. Oftmals sind es aber auch viele einfache, kurze Abfragen, die jedoch zu Hunderten oder Tausenden pro Sekunde auftreten und so die Anwendung viel Zeit kosten und den Datenbank-Server belasten.
-
 Viele RDBMS stellen mit dem SQL-Kommando EXPLAIN eine Möglichkeit zur Verfügung, mehr über die innere Arbeitsweise der Datenbank bei einer bestimmten SQL-Abfrage zu erfahren. Durch gezielte Veränderung der SQL-Abfrage oder des Datenschemas kann somit die Bearbeitung der Abfrage optimiert werden.
 
-\subsection{Zielsetzung der vorliegenden  wissenschaftlichen  Auseinandersetzung}
-% Eine Semesterarbeit in diesem Bereich soll sich mit MySQL spezifischen Fragestellungen auseinander setzen. Es sollen auch die theoretischen Grundlagen der zu behandelnden datenbanktheoretischen Ansätze erläutern.
-Die folgende Arbeit bezieht sich speziell auf die Optimierung von SQL-Anfragen mitttels EXPLAIN bei dem RDBMS MySQL.
-Es soll untersucht werden
+% Eine Semesterarbeit in diesem Bereich soll sich mit MySQL spezifischen Fragestellungen auseinander setzen. 
+% Es sollen auch die theoretischen Grundlagen der zu behandelnden datenbanktheoretischen Ansätze erläutern.
+Die vorliegende Arbeit bezieht sich speziell auf die Optimierung von SQL-Anfragen mittels des SQL-Kommandos EXPLAIN bei dem RDBMS MySQL.
+Es soll aufgezeigt werden, wie mit dem Query Execution Plan der EXPLAIN-Ausgabe die Arbeitsweise der Datenbank besser verstanden werden kann. Darauf aufbauend wird gezeigt, wie mit zielgerichteten Änderungen des Datenbank-Schemas und der SQL-Anfragen die Geschwindigkeit der Datenbank-Anfragen erheblich gesteigert werden kann.
 
-\subsection{Vorgehensbeschreibung}
--Literaturrecherche betrieben,
--wesentliche Punkte zusammengefasst
--an Beispieldatenbank experimentell nachvollzogen
+Grundlage dieser Seminararbeit sind die Fachbücher \cite{Bradford2011}, \cite{Sauer1998}, \cite{Schwartz2009} sowie die MySQL-Referenz-Dokumentation \cite{refman1}, \cite{refman2}, \cite{refman3}.
+Nach der Literaturrecherche und Bearbeitung der relevanten Fachliteratur bestand mein Betrag darin, die wesentlichen Punkte kompakt zusammenzufassen und die Vorgehensweise der Optimierung an einigen Beispielen experimentell zu demonstrieren.
 
 \section{Theoretische Grundlagen}
 \subsection{Der physische Zugriff auf die Daten}
@@ -31,6 +27,7 @@ DBMS <---> Dateisystemtreiber <---> Blockgerätetreiber <---> HDD/SSD
 Auf den verschiedenen Ebenen findet hierbei Caching statt, um die relativ langsamen Zugriffe auf den Massenspeicher (HDD oder SSD) zu vermeiden oder zumindest zu bündeln. Die Reduzierung von Massenspeicher-Zugriffen ist  daher auch eine effektive Methode der DB-Anfrage-Optimierung.
 
 \subsection{Speicherstrukturen}
+
  Binärbaum:
 
  B-Baum, Hashing, Heap
@@ -43,8 +40,6 @@ Auf den verschiedenen Ebenen findet hierbei Caching statt, um die relativ langsa
 
 \section{MySQL-EXPLAIN}
 In vielen RDBMS steht mit dem SQL-Kommando EXPLAIN ein Werkzeug zur Werfügung, um mehr darüber zu erfahren, wie die Datenbank eine bestimmte Anfrage ausführt, wie also der Query Execution Plan (QEP) ist. Das EXPLAIN-Kommando gehört jedoch nicht zum SQL-Standard und wird bei den verschiedenen RDBMS unterschiedliche Ausgaben erzeugen. Bei MySQL ist EXPLAIN sehr mächtig und gibt umfassend und datailliert Auskunft über den QEP. Hierbei muss jedoch beachtet werden, dass der QEP nicht fix ist, sondern bei jeder Anfrage vom Optimierer erneut erstellt wird (sofern die Anfrage nicht bereits aus dem Query-Cache bedient werden kann). Es gibt daher keine Garantie, dass die Anfrage immer mit dem vorher von EXPLAIN gezeigten QEP ausgeführt wird. Es empfielt sich daher, die untersuchten SQL-Anfragen von Zeit zu Zeit erneut mit EXPLAIN zu prüfen - mit Real-World-Daten.
-
-\subsection{Einfache SELECT-Anfragen mit einer Tabelle}
 
 \subsection{Umschreiben von Nicht-SELECT-Anfragen}
 Vor MySQL 5.6.3 konnte EXPLAIN nur auf SELECT-Anfragen angewendet werden. \cite{refman1}
@@ -59,6 +54,46 @@ kann zu folgendem SELECT umgeschrieben werden:
 \end{verbatim}
 
 Ab MySQL 5.6.3 kann EXPLAIN auf SELECT, DELETE, INSERT, REPLACE und UPDATE angewendet werden.
+
+\subsection{Einfache SELECT-Anfragen mit einer Tabelle}
+An einem Beispiel einer einfachen SELECT-Anfrage soll gezeigt werden, wie die Ausgabe einer EXPLAIN-Anweisung aufgebaut ist.
+Hierzu wir zur Demonstation zuerst eine Tabelle mit einigen Daten erzeugt:
+\begin{spacing}{1}\begin{verbatim}
+mysql> CREATE TABLE words ( 
+       id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, 
+       word VARCHAR(60) ) ENGINE=InnoDB; 
+Query OK, 0 rows affected (0,81 sec)
+
+-- Worte aus Wörterbuch in die Tabelle laden
+mysql> LOAD DATA LOCAL INFILE '/usr/share/dict/ngerman'
+       INTO TABLE words (word);
+Query OK, 339099 rows affected (6,58 sec)
+Records: 339099  Deleted: 0  Skipped: 0  Warnings: 0
+\end{verbatim}\end{spacing}
+Es wurden also 339099 Zeilen bzw. Wörter in die Tabelle importiert, die id-Spalte hat MySQL dabei automatisch gefüllt und hochgezählt.
+Nun sollen beispielhaft die fünf alphabetisch letzten Worte abgefragt werden. Anschließend wird mit vorangestelltem EXPLAIN der entsprechende QEP angezeigt:
+\begin{spacing}{1}
+\begin{verbatim}
+mysql> SELECT word FROM words ORDER BY word DESC LIMIT 5;
++-----------+
+| word      |
++-----------+
+| zzgl      |
+| Zysten    |
+| Zyste     |
+| Zypressen |
+| Zypresse  |
++-----------+
+5 rows in set (0,20 sec)
+
+mysql> EXPLAIN SELECT word FROM words ORDER BY word DESC LIMIT 5;
++----+-------------+-------+------+---------------+------+---------+------+--------+----------------+
+| id | select_type | table | type | possible_keys | key  | key_len | ref  | rows   | Extra          |
++----+-------------+-------+------+---------------+------+---------+------+--------+----------------+
+|  1 | SIMPLE      | words | ALL  | NULL          | NULL | NULL    | NULL | 341202 | Using filesort |
++----+-------------+-------+------+---------------+------+---------+------+--------+----------------+
+1 row in set (0,00 sec)
+\end{verbatim}\end{spacing}
 
 \subsection{Die Spalten der EXPLAIN-Ausgabe}
 Als Ergebnis einer EXPLAIN-Anfrage liefert MySQL eine Tabelle mit festen Spalten und einer oder mehrerer Zeilen, je nach Komplexität der Anfrage. Die einzelnen Spalten haben folgende Bedeutung (vgl. \cite{refman2}, 
