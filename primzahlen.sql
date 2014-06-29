@@ -1,5 +1,5 @@
 -- Primzahlen bis 100 Mio. berechnen (Linux-Konsole)
--- # primes 1 10 000 000 > /tmp/primes
+-- # primes 1 10000000 > /tmp/primes
 -- # sudo chown mysql:mysql /tmp/primes
 -- # mysql -u root -p
 
