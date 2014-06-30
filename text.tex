@@ -262,25 +262,100 @@ daß der Query-Cache von MySQL nicht aktiv ist (query\_cache\_type=OFF und query
 Für die Optimierung sind die wichtigsten Spalten der EXPLAIN-Ausgabe \textbf{key} (benutzer Index), \textbf{rows} (Anzahl Zeilen bearbeitet) und \textbf{type} (Zugriffstyp).
 Bei dem oben genannten Beispiel kann man anhand dieser drei Spalten erkennen, daß der Zugriff auf die Primzahlen langsam ist, weil kein Primärschlüssel oder ein anderer Index existiert.
 Für einen neu anzulegenden Index kann hier das Schlüsselwort UNIQUE verwendet werden, da keine Zahl mehrfach in der Tabelle vorkommen kann:
+\begin{lstlisting}
+mysql> ALTER TABLE big ADD UNIQUE INDEX IX_P USING BTREE (p ASC);
+Query OK, 0 rows affected (48,53 sec)
+\end{lstlisting}
+Man sieht, daß das Anlegen eines Index recht lange dauern kann. Die Tabelle wird für diesen Zeitraum für Schreibzugriffe gesperrt. Auf einem Produktiv-System ist daher mit großer Vorsicht und gründlicher Planung zu agieren, vorher sollte man sich Informationen über die Größe der Tabelle holen und am besten einen Probedurchlauf auf einer Kopie der Tabelle machen!
+Doch welche Auswirkung hat das Anlegen des Index auf die SQL-Anfrage?
+\begin{lstlisting}
+mysql> SELECT p,word FROM words, big WHERE p=id ORDER BY word LIMIT 5;
++--------+---------------+
+| p      | word          |
++--------+---------------+
+|     29 | Aachener      |
+|     31 | Aachenerinnen |
+| 113647 | aale          |
+| 113657 | aalglattem    |
+|     37 | Aargau        |
++--------+---------------+
+5 rows in set (0,46 sec)
+\end{lstlisting}
+Die Abfrage hat sich von 22,67s auf 0,45s reduziert, also um Faktor 49!
+Wie schaut jetzt der QEP aus?
+\begin{lstlisting}[basicstyle=\ttfamily\tiny]
+mysql> EXPLAIN SELECT p,word FROM words, big WHERE p=id ORDER BY word LIMIT 5;
++----+-------------+-------+--------+---------------+------+---------+--------------------+--------+--------------------------+
+| id | select_type | table | type   | possible_keys | key  | key_len | ref                | rows   | Extra                    |
++----+-------------+-------+--------+---------------+------+---------+--------------------+--------+--------------------------+
+|  1 | SIMPLE      | words | ALL    | PRIMARY       | NULL | NULL    | NULL               | 341202 | Using filesort           |
+|  1 | SIMPLE      | big   | eq_ref | IX_P          | IX_P | 4       | primetest.words.id |      1 | Using where; Using index |
++----+-------------+-------+--------+---------------+------+---------+--------------------+--------+--------------------------+
+\end{lstlisting}
+Die Reihenfolge, in welcher die Tabellen gelesen werden hat sich jetzt umgekehrt.
+Auf die Tabelle mit den Primzahlen kann nun über den Index zugegriffen werden, es kann sogar direkt aus dem abdeckenden Index gelesen werden (Extra=Using index), ohne auf die eigentliche Tabelle zugreifen zu müssen. Jedoch wird jetzt auf der Wörter-Tabelle ein full Tablescan ausgeführt und über 300.000 Zeilen müssen gelesen werden, denn die Worte müssen weiterhin nachträglich sortiert werden (Extra=Using filesort).\\
+Mit einem weiteren Index auf die Spalte word lässt sich das Sortierungsproblem lösen:
+\begin{lstlisting}
+mysql> ALTER TABLE words ADD INDEX IX_WORD USING BTREE (word ASC);
+Query OK, 0 rows affected (2,06 sec)
+\end{lstlisting}
+UNIQUE INDEX läßt sich hier nicht anwenden, da ein Wort mehrfach vorkommen kann.
+Mit dem neuen Wörter-Index hat sich die Zeit noch einmal verbessert:
 
+\begin{lstlisting}
+mysql> SELECT p,word FROM words, big WHERE p=id ORDER BY word LIMIT 5;
++--------+---------------+
+| p      | word          |
++--------+---------------+
+|     29 | Aachener      |
+|     31 | Aachenerinnen |
+| 113647 | aale          |
+| 113657 | aalglattem    |
+|     37 | Aargau        |
++--------+---------------+
+5 rows in set (0,00 sec)
+\end{lstlisting}
+Die Abfragezeit ist nun kleiner als 10 ms, laut Workbench sogar unter 1ms! Der optimierte QEP ist nun folgender:
+\begin{lstlisting}[basicstyle=\ttfamily\tiny]
+mysql> EXPLAIN SELECT p,word FROM words, big WHERE p=id ORDER BY word LIMIT 5;
++----+-------------+-------+--------+---------------+---------+---------+--------------------+------+--------------------------+
+| id | select_type | table | type   | possible_keys | key     | key_len | ref                | rows | Extra                    |
++----+-------------+-------+--------+---------------+---------+---------+--------------------+------+--------------------------+
+|  1 | SIMPLE      | words | index  | PRIMARY       | IX_WORD | 63      | NULL               |    5 | Using index              |
+|  1 | SIMPLE      | big   | eq_ref | IX_P          | IX_P    | 4       | primetest.words.id |    1 | Using where; Using index |
++----+-------------+-------+--------+---------------+---------+---------+--------------------+------+--------------------------+
+\end{lstlisting}
+Jetzt können auch die Worte aus dem abdeckenden Index gelesen werden. Es müssen nur 5 Zeilen aus der Wörtertabelle und jeweils 1 Zeile aus der Primzahlentabelle gelesen werden
+Insgesamt werden also nur 10 Datensätze direkt aus dem Index gelesen, und zwar genau die Daten, die auch ausgegeben werden sollen.
+\\An diesem einfachen Beispiel zeigt sich, wie mit Hilfe von Explain und Anlegen der richtigen Indizes die Performance von Abfragen um Größenordnungen gesteigert werden kann.
+\\Wird ein vorhandener Index bei der Anfrage nicht genutzt, obwohl er augenscheinlich genutzt werden sollte, dann kann das an veralteten Tabellen-Statistiken oder einer ungenügenden Stichprobe für die Statistiken liegen. Die Statistiken für eine Tabelle lassen sich dann mit ANALYZE TABLE Tabellenname aktualisieren.
 
-QEP ist nicht fix, wird bei jeder Abfrage neu erstellt. Daher EXPLAIN einer Abfrage mit verschiedenen Beispielwerten.
-Nicht mit Test-Daten testen, sondern RealWord-Daten, z.B. Backups.
+Als Nachteil von Indizes ist anzumerken, dass beim Schreiben ein gewisser Mehraufwand für die Datenbank besteht, da neben der Tabelle auch der Index aktualisiert werden muss. Bei Tabellen, in welche stängig sehr viel geschrieben wir, z.B. für Logging-Zwecke, könnten Indizes daher nachteilig sein.
 
-ALTER TABLE users ADD INDEX
-
-Vorsicht beim Anlegen von INDIZES: Kann bei großen Tabellen sehr lange Dauern und blockiert in dieser Zeit die Tabelle.
-Vorher Informationen über die Größe der Tabellen holen, am besten einen Probedurchlauf auf einer Kopie machen.
-
-Wird ein vorhandener Index bei der Anfrage nicht genutzt, obwohl er augenscheinlich genutzt werden sollte, dann kann das an veralteten Tabellen-Statistiken oder einer ungenügenden Stichprobe für die Statistiken liegen. Die Statistiken für eine Tabelle lassen sich dann mit ANALYZE TABLE Tabellenname aktualisieren.
+Bei der Optimierung von Datenbanken sind noch ein paar weitere Punkte zu beachten:
+\begin{itemize} 
+	\item möglichst zuerst den Programmcode der Anwendung optimieren um DB-Anfragen zu bündeln (1+n-Problem)
+	\item berits im Entwicklungsprozess die DB-Anfragen proaktiv beobachten
+	\item mit verschiedenen Beispielwerten testen - der QEP ist nicht fix, sondern wird bei jeder Abfrage neu erstellt
+	\item nicht mit Entwicklungs-Datenbanken (kaum gefüllte Tabellen) testen, sondern Real-Word-Daten einsetzen, z.B. aus Backups
+	\item auf Produktiv-Systeme mit einer Stichprobe (z.B. jede 100. Anfrage) benchmarken - Systeme unter Last agieren anders als Systeme im Leerlauf
+	\item Tests von Zeit zu Zeit wiederholen, da sich die Tabellen im Laufe des Betriebs weiter füllen
+\end{itemize}
 
 \section{Fazit und Ausblick}
 % Der  Schluss  stellt  quasi  die  Abrundung  der  Arbeit  dar.  Er  beinhaltet  eine  kurze  Zusammenfassung
 % der wichtigsten Ergebnisse, ein Fazit sowie einen Ausblick auf weitere Fragestellungen bzw. künftige Entwicklungen
 
-Beschränkungen!
-Optimierung wichtig
-Mit Explain möglich
-nicht immer exakte Angaben
-Kontrolle der Optimierung mit Benchmarks nötig
-möglichst bereits in den Entwicklungsprozeß integrieren, und nicht erst wenn es brennt
+Es wurde gezeigt, wie ein RDBMS mit Hilfe von Indizes schneller auf Daten zugreifen kann.
+Exemplarisch wurde für MySQL ein Workflow demonstriert, mit dem mittels EXPLAIN SQL-Anfragen um mehrere Größenordnungen beschleunigt werden konnten.
+Hierbei ist zu beachten, daß EXPLAIN keine exakten Angaben liefert, daher ist immer auch eine Überprüfung der Optimierung mit Benchmarks notwendig.
+Aus Platzgründen konnte leider auf viele weitere Möglichkeiten der Datenbank-Optimierung nicht eingegeangen werden, wie Umschreiben von ungünstigen SQL-Anfragen, Nutzung des Query-Caches, Profiling der Datenbank, Profiling der Anwendung, Eleminierung überflüssiger Indizes, Eleminierung überflüssiger Datenspalten in der SQL-Anfrage. 
+Es wurden auch nur relativ einfache SELECT-Anfragen untersucht, keine UNIONS, oder Subselects.
+Dies alles wären Themen für weitergehende Arbeiten. 
+
+%Beschränkungen!
+%Optimierung wichtig
+%Mit Explain möglich
+%nicht immer exakte Angaben
+%Kontrolle der Optimierung mit Benchmarks nötig
+%möglichst bereits in den Entwicklungsprozeß integrieren, und nicht erst wenn es brennt
