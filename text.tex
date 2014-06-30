@@ -11,7 +11,7 @@ Die vorliegende Arbeit bezieht sich speziell auf die Optimierung von SQL-Anfrage
 Es soll aufgezeigt werden, wie mit dem Query Execution Plan der EXPLAIN-Ausgabe die Arbeitsweise der Datenbank besser verstanden werden kann. Darauf aufbauend wird gezeigt, wie mit zielgerichteten Änderungen des Datenbank-Schemas und der SQL-Anfragen die Geschwindigkeit der Datenbank-Anfragen erheblich gesteigert werden kann.
 
 Grundlage dieser Seminararbeit sind die Fachbücher \cite{Bradford2011}, \cite{Sauer1998}, \cite{Schwartz2009} sowie die MySQL-Referenz-Dokumentation \cite{refman1}, \cite{refman2}, \cite{refman3}.
-Nach der Literaturrecherche und Bearbeitung der relevanten Fachliteratur bestand mein Betrag darin, die wesentlichen Punkte kompakt zusammenzufassen und die Vorgehensweise der Optimierung an einigen Beispielen experimentell zu demonstrieren.
+Nach der Literaturrecherche und Bearbeitung der relevanten Fachliteratur bestand mein Beitrag darin, die wesentlichen Punkte kompakt zusammenzufassen und die Vorgehensweise der Optimierung an einigen Beispielen experimentell zu demonstrieren.
 
 \section{Theoretische Grundlagen}
 \subsection{Der physische Zugriff auf die Daten}
@@ -26,7 +26,7 @@ Auf den verschiedenen Ebenen findet hierbei Caching statt, um die relativ langsa
 \subsection{Speicherstrukturen}
 Um die Daten einer Datenbank persistent zu speichern, werden diese auf einem Massenspeicher (HDD oder SSD)  abgelegt. Auf dieses sog. Blockgerät kann immer nur in Datenblöcken fester Größe, auch Pages oder Seiten genannt, zugegriffen werden. MySQL speichert jede Tabelle in einer eigenen Datei, für einen Zugriff auf einen bestimmten Datensatz muß daher dessen Position innerhalb der Datei bekannt sein (Record-ID, RID). Andere Datenbanken wie SAP MaxDB oder Oracle speichern alle Tabellen in einer Datei (sog. Tablespace), die vorher mit einer festen Größe angelegt werden muß, um den Speicherplatz für die Daten zu reservieren (vgl. \cite{Sauer1998}, S. 145f). Es ist auch möglich, eine ganze Partition oder ein ganzes physisches Laufwerk für den Tablespace zu verwenden, womit der Overhead des Dateisystems vermieden wird und schneller auf die Datensätze zugegriffen werden kann.
 
-Ein Grundproblem bei Datenbanken ist es, einen bestimmten Datensatz schnell aufzufinden, denn bei großen Tabellen ist es nicht praktikabel, dafür die gesamte Tabelle zu durchsuchen. Deswegen wurden verschiedene Algorithmen und Speicherstrukturen entwickelt, die den Zugriff auf einen Datensatz mit möglichst wenig Datenträgerzugriffen ermöglichen. Heutige Festplattenlaufwerke erlauben bei Zugriffszeiten von 10ms ca. 100 zufällige Zugriffe pro Sekunde, viele Größenordnungen langsamer als Zugriffe im RAM. Mit dem Aufkommen erschwinglicher SSDs mit einigen 10.000 bis zu einigen 100.000 Zugriffen pro Sekunde ist das Problem etwas entschärft aber immer noch vorhanden. Im folgenden werden einige Speicherstrukturen vorgestellt, die jedoch nicht alle bei einem RDBMS implementiert sein müssen.
+Ein Grundproblem bei Datenbanken ist es, einen bestimmten Datensatz schnell aufzufinden, denn bei großen Tabellen ist es nicht praktikabel, dafür die gesamte Tabelle zu durchsuchen. Deswegen wurden verschiedene Algorithmen und Speicherstrukturen entwickelt, die den Zugriff auf einen Datensatz mit möglichst wenig Datenträgerzugriffen ermöglichen. Heutige Festplattenlaufwerke erlauben bei Zugriffszeiten von 10ms ca. 100 zufällige Zugriffe pro Sekunde, viele Größenordnungen langsamer als Zugriffe im RAM. Mit dem Aufkommen erschwinglicher SSDs mit einigen 10.000 bis zu einigen 100.000 Zugriffen pro Sekunde ist das Problem etwas entschärft, aber immer noch vorhanden. Im Folgenden werden einige Speicherstrukturen vorgestellt, die jedoch nicht alle bei einem RDBMS implementiert sein müssen.
 \subsubsection{Binärbaum}
 Der Binärbaum ist eine baumartige Zeigerstruktur, bei der jeder Knoten die Daten selbst (oder einen Zeiger auf die Daten) und zwei Zeiger auf weitere Knoten oder Blätter enthält. Ein Zeiger zeigt auf einen (im Sinne der Sortierung) kleineren Datensatz und ein Zeiger zeigt auf einen größeren Datensatz. Ein Knoten hat also prinzipiell folgenden Aufbau:
 \begin{lstlisting}
@@ -35,7 +35,7 @@ Schlüssel-Wert: München
    kleiner-RID:    34
     größer-RID:    55
 \end{lstlisting}
-Wird ein neuer Datensatz eingefügt, so wird dessen Schlüssel-Wert verglichen mit dem Schlüssel-Wert des Wurzel-Knotens und dann rekursiv auf der kleineren oder auf der größeren Seite des Baumes einsortiert. So ensteht eine geordnete Struktur, welche durch Rekursion in sortierter Reihenfolge gelesen werden kann. Bei häufigen Schreibzugriffen mit ungünstigen Werten kann es passieren, daß der Binärbaum entartet. Beispielsweise würden beim Einfügen von immer größeren Werten die rechte Seite zu einer verketteten Liste entarten. Daher muß der Baum regelmäßig neu generiert (ausbalanciert) werden, was sehr aufwendig ist. Ein anderer Nachteil ist, daß bei 1000 Datensätzen, bereits 10 Ebenen, also 10 Datenträger-Zugriffe nötig sein, bei 1 Mio. Datensätzen, sind es bereits 20 Datenträgerzugriffe, also ein Zeitaufwand von etwa 0,2 Sekunden zum Auffinden eines Datensatzes (vgl. \cite{Sauer1998}, S. 147f).
+Wird ein neuer Datensatz eingefügt, so wird dessen Schlüssel-Wert verglichen mit dem Schlüssel-Wert des Wurzel-Knotens und dann rekursiv auf der kleineren oder auf der größeren Seite des Baumes einsortiert. So ensteht eine geordnete Struktur, welche durch Rekursion in sortierter Reihenfolge gelesen werden kann. Bei häufigen Schreibzugriffen mit ungünstigen Werten kann es passieren, daß der Binärbaum entartet. Beispielsweise würden beim Einfügen von immer größeren Werten die rechte Seite zu einer verketteten Liste entarten. Daher muß der Baum regelmäßig neu generiert (ausbalanciert) werden, was sehr aufwendig ist. Ein anderer Nachteil ist, daß bei 1000 Datensätzen, bereits 10 Ebenen, also 10 Datenträgerzugriffe nötig sein, bei 1 Mio. Datensätzen, sind es bereits 20 Datenträgerzugriffe, also ein Zeitaufwand von etwa 0,2 Sekunden zum Auffinden eines Datensatzes (vgl. \cite{Sauer1998}, S. 147f).
 \subsubsection{B-Baum}
 Im Jahre 1971 wurde das Prinzip der Binärbäume von R. Bayer und E. McCreight erheblich verbessert (vgl. \cite{Bayer1972}).
 Da eine Speicherseite auf dem Datenträger in der Regel mehr Speicherplatz bietet als für einen Binärbaumknoten benötigt, kann man auch in einem Knoten mehr Datensätze und Schlüssel zu Unterknoten unterbringen als in einem Binärbaumknoten. Der Baum wird dadurch breiter und flacher, mit der Folge, daß bei vielen Datensätzen weniger Knoten durchsucht werden müssen als bei dem Binärbaum. Der Verzweigungsgrad (oder die Ordnung) wird dabei von dem Algorithmus immer optimal gehalten. Der B-Baum ist dadurch automatisch immer ausbalanciert. Seit der Veröffentlichung von Bayer und McCreight 1972 wurden das Prinzip der B-Bäume mehrfach weiter verfeinert und führte zur Entwicklung der RDBMS. Heute kommt diese Datenstruktur in praktisch allen Datenbanken zur Anwendung.\\
@@ -47,7 +47,7 @@ Da eine Speicherseite auf dem Datenträger in der Regel mehr Speicherplatz biete
 \\Der Vorteil des B-Baumes gegenüber dem Binärbaum ist, daß weniger Zugriffe auf den Massenspeicher notwendig sind, um zu einem Datensatz zu gelangen. Im schlechtesten Fall sind O(log(n)) Knoten zu durchsuchen. Wie auch beim Binärbaum ist beim B-Baum ein schneller Zugriff auf einen Bereich oder auf das Minimum bzw. Maximum der Daten möglich, da die Datensätze in einer definierten Ordnung abgelegt sind.
 
 \subsubsection{Hashing}
-Eine Methode um schnell auf einen Datensatz zuzugreifen ist das Hash-Verfahren. Hierbei wird der Schlüssel des Datensatzes mit einer Hash-Funktion auf eine RID abgebildet. Eine Hash-Funktion ist jedoch keine eineindeutige Abbildung, daher kann es auch zu Kollisionen kommen, mehrere Datensätze können also auf die gleiche RID abgebildet werden. In einem solchen Fall müssen dann weitere Mechanismen dafür sorgen, daß die Daten an einer anderen Stelle gespeichert und wieder aufgefunden werden können. Z.B. kann die durch nochmalige Anwendung der Hash-Funktion erfolgen oder durch einen zusätzlichen Überlaufbereich, der die Daten einfach sequentiell speichert. Damit es möglichst selten zu Kollisionen kommt und der Zugriff dadurch verlangsamt wird, muß der für die Daten reservierte Speicher groß genug gewählt werden(vgl. \cite{Sauer1998}, S. 153f).
+Eine Methode um schnell auf einen Datensatz zuzugreifen ist das Hash-Verfahren. Hierbei wird der Schlüssel des Datensatzes mit einer Hash-Funktion auf eine RID abgebildet. Eine Hash-Funktion ist jedoch keine eineindeutige Abbildung, daher kann es auch zu Kollisionen kommen, mehrere Datensätze können also auf die gleiche RID abgebildet werden. In einem solchen Fall müssen dann weitere Mechanismen dafür sorgen, daß die Daten an einer anderen Stelle gespeichert und wieder aufgefunden werden können. Z.B. kann dies durch nochmalige Anwendung der Hash-Funktion erfolgen oder durch einen zusätzlichen Überlaufbereich, der die Daten einfach sequentiell speichert. Damit es möglichst selten zu Kollisionen kommt und der Zugriff dadurch verlangsamt wird, muß der für die Daten reservierte Speicher groß genug gewählt werden(vgl. \cite{Sauer1998}, S. 153f).
 \begin{figure}[h]
 \begin{lstlisting}[basicstyle=\ttfamily\scriptsize\singlespacing, commentstyle=,language=]
                                            +------+-----+---------+
@@ -76,21 +76,21 @@ Eine Methode um schnell auf einen Datensatz zuzugreifen ist das Hash-Verfahren. 
 \label{hash}
 \end{figure}
 Der Vorteil des Hashing besteht darin, daß die Zugriffszeit nahezu unabhängig von der Tabellengröße ist (jedoch abhängig vom Füllgrad). In der Regel kann mit einem oder zwei Datenträgerzugriffen der Datensatz gefunden werden.
-Der größte Nachteil ist die fehlende Sortierung der Daten. Bei einem Zugriff auf einen Bereich (WHERE Name LIKE 'B\%') muß die gesamte Tabelle durchsucht werden. Außerdem wird immer ein gewisser Teil des Speicherplatz verschwendet.
+Der größte Nachteil ist die fehlende Sortierung der Daten. Bei einem Zugriff auf einen Bereich (WHERE Name LIKE 'B\%') muß die gesamte Tabelle durchsucht werden. Außerdem wird immer ein gewisser Teil des Speicherplatzes verschwendet.
 
 \subsubsection{Heap} 
-Bei einem Heap (deutsch: Haufen, Halde) werden alle Datensätze einfach der Reihe nach auf dem Datenträger abgelegt. Um auf einen bestimmten Datensatz zuzugreifen, muß daher immer der gesamte Heap gelesen werden. Dies ist bei großen Tabellen in der Regel ungünstig, kann jedoch eine Möglichkeit für kleinere Tabellen sein, die einen Umfang von einigen wenigen Speicherseiten haben, da diese komplett in den Datencache passen oder ggf. mit nur einem Datenträgerzugriff gelesen werden können.
+Bei einem Heap (deutsch: Haufen, Halde) werden alle Datensätze einfach der Reihe nach auf dem Datenträger abgelegt. Um auf einen bestimmten Datensatz zuzugreifen, muß daher u.U. der gesamte Heap gelesen werden. Dies ist bei großen Tabellen in der Regel ungünstig, kann jedoch eine Möglichkeit für kleinere Tabellen sein, die einen Umfang von einigen wenigen Speicherseiten haben, da diese komplett in den Datencache passen oder ggf. mit nur einem Datenträgerzugriff gelesen werden können.
 
 \subsection{Abarbeitung von SQL-Ausdrücken}
-Als Programmiersprache gehört SQL zu den 4GL-Sprachen. Das bedeutet, im Gegensatz zu den Programmiersprachen der 3. Generation wird nicht beschrieben WIE ein Ergebnis ermittelt werden soll, sondern WELCHES Ergebnis ermittelt werden soll. Das Problem wird bei SQL also auf einem anderen semantischen Level beschrieben. Intern muß jedoch die Abfrage wieder in einen linearen Programmcode umgewandelt werden, der von der CPU bearbeitet werden kann. Dies resultiert dann zu mehr oder weniger verschachtelten Schleifen, je nach Anzahl der Tabellen, die miteinander verknüpft werden.
+Als Programmiersprache gehört SQL zu den 4GL-Sprachen. Das bedeutet, im Gegensatz zu den Programmiersprachen der 3. Generation wird nicht beschrieben WIE ein Ergebnis ermittelt werden soll, sondern WELCHES Ergebnis ermittelt werden soll. Das Problem wird bei SQL also auf einem anderen semantischen Level beschrieben. Intern muß jedoch die Abfrage wieder in einen linearen Programmcode umgewandelt werden, der von der CPU bearbeitet werden kann. Dies resultiert dann in mehr oder weniger verschachtelten Schleifen, je nach Anzahl der Tabellen, die miteinander verknüpft werden.
 Sind mehrere Tabellen in die Abfrage involviert, so muß das RDBMS deren karthesisches Produkt bilden, um dann das Ergebnis gemäß der Bedingungen in der WHERE-Klausen einzuschränken. Wenn auf die verknüpften Spalten nicht über Indizes zugegriffen werden kann, dann müssen tatsächlich alle möglichen Kombinationen geprüft werden.
 
 \section{MySQL-EXPLAIN}
-In vielen RDBMS steht mit dem SQL-Kommando EXPLAIN ein Werkzeug zur Verfügung, um mehr darüber zu erfahren, wie die Datenbank eine bestimmte Anfrage ausführt, wie also der Query Execution Plan (QEP) ist. Das EXPLAIN-Kommando gehört jedoch nicht zum SQL-Standard und wird bei den verschiedenen RDBMS unterschiedliche Ausgaben erzeugen. Bei MySQL ist EXPLAIN sehr mächtig und gibt umfassend und detailliert Auskunft über den QEP. Hierbei muß jedoch beachtet werden, daß der QEP nicht fix ist, sondern bei jeder Anfrage vom Optimierer erneut erstellt wird (sofern die Anfrage nicht bereits aus dem Query-Cache bedient werden kann). Es gibt daher keine Garantie, daß die Anfrage immer mit dem vorher von EXPLAIN gezeigten QEP ausgeführt wird. Es empfielt sich daher, die untersuchten SQL-Anfragen von Zeit zu Zeit erneut mit EXPLAIN zu prüfen - mit Real-World-Daten.
+In vielen RDBMS steht mit dem SQL-Kommando EXPLAIN ein Werkzeug zur Verfügung, um mehr darüber zu erfahren, wie die Datenbank eine bestimmte Anfrage ausführt, wie also der Query Execution Plan (QEP) ist. Das EXPLAIN-Kommando gehört jedoch nicht zum SQL-Standard und wird bei den verschiedenen RDBMS unterschiedliche Ausgaben erzeugen. Bei MySQL ist EXPLAIN sehr mächtig und gibt umfassend und detailliert Auskunft über den QEP. Hierbei muß jedoch beachtet werden, daß der QEP nicht fix ist, sondern bei jeder Anfrage vom Optimierer erneut erstellt wird (sofern die Anfrage nicht bereits aus dem Query-Cache bedient werden kann). Es gibt daher keine Garantie, daß die Anfrage immer mit dem vorher von EXPLAIN gezeigten QEP ausgeführt wird. Es empfielt sich deswegen, die untersuchten SQL-Anfragen von Zeit zu Zeit erneut mit EXPLAIN zu prüfen - mit Real-World-Daten.
 
 \subsection{Umschreiben von Nicht-SELECT-Anfragen}
 Vor MySQL 5.6.3 konnte EXPLAIN nur auf SELECT-Anfragen angewendet werden. \cite{refman3}
-Einige Nicht-SELECT-Anfragen, wie DELETE, INSERT, REPLACE und UPDATE können jedoch in ein entsprechendes SELECT-Kommando umgeformt werden, um dieses dann mit EXPLAIN zu untersuchen. Zu beachten ist jedoch, daß schreibende Anweisungen generell aufwendiger sind als das entsprechende SELECT-Kommando, da zusätzlich zum Auffinden der Daten noch die Schreiboperation ausgeführt werden muß, ggf. kommen auch noch Aktualisierungen von Indizes hinzu.
+Einige Nicht-SELECT-Anfragen, wie DELETE, INSERT, REPLACE und UPDATE können jedoch in ein entsprechendes SELECT-Kommando umgeformt werden, um dieses dann mit EXPLAIN zu untersuchen. Zu beachten ist aber, daß schreibende Anweisungen generell aufwendiger sind als das entsprechende SELECT-Kommando, da zusätzlich zum Auffinden der Daten noch die Schreiboperation ausgeführt werden muß, ggf. kommen auch noch Aktualisierungen von Indizes hinzu.
 Beispiel:
 \begin{lstlisting}
   DELETE user WHERE last_login < '2012-01-01'
@@ -117,7 +117,8 @@ Query OK, 339099 rows affected (6,58 sec)
 Records: 339099  Deleted: 0  Skipped: 0  Warnings: 0
 \end{lstlisting}
 Es wurden also 339099 Zeilen bzw. Wörter in die Tabelle importiert, die id-Spalte hat MySQL dabei automatisch gefüllt und hochgezählt.
-Nun sollen beispielhaft die fünf alphabetisch letzten Worte abgefragt werden:
+Nun sollen beispielhaft die fünf alphabetisch letzten Worte abgefragt werden:\\
+\begin{minipage}{\linewidth}
 \begin{lstlisting}
 mysql> SELECT word FROM words ORDER BY word DESC LIMIT 5;
 +-----------+
@@ -131,6 +132,8 @@ mysql> SELECT word FROM words ORDER BY word DESC LIMIT 5;
 +-----------+
 5 rows in set (0,20 sec)
 \end{lstlisting}
+\end{minipage}
+
 Durch Voranstellen von EXPLAIN läßt sich der QEP der SELECT-Anfrage anzeigen:
 \begin{lstlisting}[basicstyle=\ttfamily\scriptsize]
 mysql> EXPLAIN SELECT word FROM words ORDER BY word DESC LIMIT 5;
@@ -154,17 +157,17 @@ Diese Zahl identifiziert das SELECT, zu dem die Zeile gehört. Bei einer einfach
 
 \textbf{select\_type}\\*
 Die Spalte gibt an, ob es sich um ein einfaches oder komplexes SELECT handelt. Folgende Werte können hierbei auftreten:
-\begin{description}
+\begin{description}[labelwidth=100pt]
 	\item[SIMPLE] einfaches SELECT, keine Unterabfragen oder UNIONS
 	\item[PRIMARY] äußeres SELECT eines komplexen SELECT
 	\item[SUBQUERY] SELECT in einer Unterabfrage
 	\item[DERIVED] SELECT in einer Unterabfrage in der FROM-Klausel
-	\item[UNION] zweites bzw. nachfolgende SELECT einer UNION
+	\item[UNION] zweites bzw. nachfolgende SELECT eines UNION
 	\item[UNION RESULT] Ergebnis des UNION, wird aus temporärer Tabelle geholt
 \end{description}
 
 \textbf{table}\\*
-Die Spalte Table gibt an, auf welche Tabelle zugegriffen wird. Dies kann der tatsächliche Tabellenname sein oder der Alias. Die Spalte ist von oben nach unten zu lesen, um die Join-Reihenfolge zu sehen, die der Optimierer für die Anfrage gewählt hat.
+Die Spalte table gibt an, auf welche Tabelle zugegriffen wird. Dies kann der tatsächliche Tabellenname sein oder der Alias. Die Spalte ist von oben nach unten zu lesen, um die Join-Reihenfolge zu sehen, die der Optimierer für die Anfrage gewählt hat.
 Bei komplexeren Anfragen mit abgeleiteten Tabellen und Vereinigungen können hier noch weitere Werte auftreten: <derivedN> wenn es in der FROM-Klausel eine Unterabfrage gibt, wobei N die ID der Unterabfrage ist und in den nachfolgenden Zeilen der Ausgabe zu finden ist. Bei einer Vereinigung mit UNION enthält die UNION RESULT-Zeile in der table-Spalte die IDs der Abfragen, welche vereinigt werden, und beziehen sich daher immer auf vorhergehende Zeilen der Ausgabe, z.B. <union2,4>.
 
 \textbf{type}\\*
@@ -173,7 +176,7 @@ Wie ist der Zugriffstyp, wie wird MySQL die Zeilen in der Tabelle auffinden? Fol
 \item[ALL] full Tablescan, d.h., Tabelle muß in der Regel von Anfang bis Ende durchlaufen werden, ist ein starkes Indiz für weiteren Optimierungsbedarf
 \item[index] wie Tablescan, aber Scannen der Tabelle erfolgt in Indexreihenfolge, eine extra Sortierung wird hierbei vermieden
 \item[range] Bereichsscan, d.h., eingeschränkter Indexscan, z.B. bei BETWEEN oder > in der WHERE-Klausel
-\item[ref] Indexzugriff findet statt, auch Index-Lookup genannt, Zeilen entsprechen einem Wert, nur bei einem nichteindeutigen Index, Index wird hierbei mit einem Referenzwert verglichen. Variante: ref\_or\_null
+\item[ref] Index-Lookup findet statt, ein nichteindeutiger Index wird hierbei mit einem Referenzwert verglichen, die gefundenen Zeilen entsprechen dem Referenzwert, Variante: ref\_or\_null
 \item[eq\_ref] Index-Lookup mit eindeutigem Treffer, bei Primärschlüssel oder eindeutigem Index
 \item[const,system] der Datenzugriff konnte von MySQL wegoptimiert oder in eine Konstante umgewandelt werden.
 \item[NULL] Abfrage kann von MySQL bei der Optimierung aufgelöst werden, kein Zugriff auf Tabelle oder Index, z.B. Minimum einer indizierten Spalte
@@ -181,20 +184,20 @@ Wie ist der Zugriffstyp, wie wird MySQL die Zeilen in der Tabelle auffinden? Fol
 
 \textbf{possible\_keys}\\*
 Diese Spalte gibt an, welche Indizes für die Bearbeitung der Anfrage prinzipiell zur Verfügung stehen.
-Die hier stehenden Werte werden bereits in einer frühen Phase der Optimierung ermittelt, letzendlich wird in der Regel nur ein Index genutzt. Sind hier viele Indizes aufgeführt deutet das auf ein Problem hin.
+Die hier stehenden Werte werden bereits in einer frühen Phase der Optimierung ermittelt. Letzendlich wird in der Regel nur ein Index genutzt. Sind hier viele Indizes aufgeführt deutet das auf ein Problem hin.
 
 \textbf{key}\\*
-Die Spalte key gibt an, welcher Index der Optimierer für die Anfrage gewählt hat. Dies kann auch ein abdeckender Index sein, aus dem die Ergebniswerte gelesen werden können, ohne daß die eigentliche Tabelle gelesen werden muß. Ein Wert von NULL in der Spalte key bedeutet, daß kein Index genutzt wird und ist ein starkes Indiz für einen Optimierungsbedarf.
+Die Spalte key gibt an, welchen Index der Optimierer für die Anfrage gewählt hat. Dies kann auch ein abdeckender Index sein, aus dem die Ergebniswerte gelesen werden können, ohne daß die eigentliche Tabelle gelesen werden muß. Ein Wert von NULL in der Spalte key bedeutet, daß kein Index genutzt wird und ist ein starkes Indiz für einen Optimierungsbedarf.
 
 \textbf{key\_len}\\*
-Gibt an, wieviel Byte (Spaltenbreite) eines Index benutzt werden. Die Zählung beginnt links, man so ermitteln, welche Spalten des Index genutzt werden.
+Gibt an, wieviel Byte (Spaltenbreite) eines Index benutzt werden. Die Zählung beginnt links, man kann so ermitteln, welche Spalten des Index genutzt werden.
 
 \textbf{ref}\\*
-Welche Spalten aus früheren Tabellen werden benutzt, um in dem key-Index nachzuschlagen.
+Gibt an, welche Spalten aus früheren Tabellen benutzt werden, um in dem key-Index nachzuschlagen.
 
 \textbf{rows}\\*
 Die Zahl in der Spalte rows ist eine Schätzung für die Anzahl der Zeilen, die gelesen werden müssen.
-Bei Abfragen mit mehreren Tabellen bezieht sich diese Angabe pro Schleife im Nested-Loop-Join-Plan.
+Bei Abfragen mit mehreren Tabellen gilt diese Angabe pro Schleifendurchlauf im Nested-Loop-Join-Plan.
 Die Schätzung beruht auf Statistiken und kann ungenau sein. Im besten Fall steht hier eine 1.
 
 \textbf{Extra}\\*
@@ -208,7 +211,7 @@ Die Extra-Spalte enthält weitere Angaben, die nicht in die anderen Spalten pass
 \end{description}
 
 \subsubsection{EXPLAIN EXTENDED}
-Wird EXPLAIN EXTENDED anstatt von EXPLAIN verwendet, dann erscheint neu seit MySQL 5.1 die zusätzliche Spalte \textbf{filtered}.Es handelt sich um eine pessimistische Schätzung des Prozentsatzes der Zeilen, die eine Bedingung erfüllen, wie z.B. eine WHERE-Klausel oder ein JOIN mit einer anderen Tabelle.
+Wird EXPLAIN EXTENDED anstatt von EXPLAIN verwendet, dann erscheint neu seit MySQL 5.1 die zusätzliche Spalte \textbf{filtered}. Es handelt sich um eine pessimistische Schätzung des Prozentsatzes der Zeilen, die eine Bedingung erfüllen, wie z.B. eine WHERE-Klausel oder ein JOIN mit einer anderen Tabelle.
 Außerdem werden weitere Informationen generiert, die mit dem nachfolgenden SQL-Kommando SHOW WARNINGS angezeigt werden können.\\
 Eine ausführliche Beschreibung zu EXPLAIN EXTENDED findet sich unter \cite{refman3}.
 
@@ -221,14 +224,15 @@ Vor allem bei Anfragen, die mehrere Tabellen verbinden, kann EXPLAIN interessant
 Zur Demonstration wird zuerst eine weitere einfache Tabelle angelegt und mit Primzahlen aus einer Datei gefüllt:
 \begin{lstlisting}
 -- Primzahlen bis 100 Mio. berechnen (in der Shell)
--- # primes 1 10000000 > /tmp/primes
+-- # primes 1 100000000 > /tmp/primes
 -- # sudo chown mysql:mysql /tmp/primes
 mysql> CREATE TABLE big ( p INT NOT NULL );
 mysql> LOAD DATA INFILE "/tmp/primes" into table big;
 >Query OK, 5761455 rows affected (49,15 sec)
 >Records: 5761455  Deleted: 0  Skipped: 0  Warnings: 0
 \end{lstlisting}
-Diese soll nun mit der Tabelle \textbf{words} verknüpft werden, um die (alphabetisch sortierten) ersten fünf Worte auszugeben, welche eine Primzahl als id haben.
+Diese soll nun mit der Tabelle \textbf{words} verknüpft werden, um die (alphabetisch sortierten) ersten fünf Worte auszugeben, welche eine Primzahl als id haben.\\
+\begin{minipage}{\linewidth}
 \begin{lstlisting}
 mysql> SELECT p,word FROM words, big WHERE p=id ORDER BY word LIMIT 5;
 +--------+---------------+
@@ -242,6 +246,8 @@ mysql> SELECT p,word FROM words, big WHERE p=id ORDER BY word LIMIT 5;
 +--------+---------------+
 5 rows in set (22,67 sec)
 \end{lstlisting}
+\end{minipage}
+
 Mit über 22 Sekunden Laufzeit war diese relativ simple Anfrage für den Datenbank-Server sehr aufwendig.
 Mit EXPLAIN zeigt sich, warum die Ausführung der Anfrage so aufwendig war:
 \begin{lstlisting}[basicstyle=\ttfamily\tiny]
@@ -254,7 +260,7 @@ mysql> EXPLAIN SELECT p,word FROM words, big WHERE p=id ORDER BY word LIMIT 5;
 +----+-------------+-------+--------+---------------+---------+---------+-----------------+---------+---------------------------------+
 2 rows in set (0,00 sec)
 \end{lstlisting}
-Beide Zeilen haben die id 1, denn es handelt sich nur um ein SELECT. Die erste Zeile bezieht sich auf die Tabelle \textbf{big}. Diese Tabelle hat keinen Primärschlüssel und auch keinen anderen Index (possible\_keys=NULL, key=NULL). Daher muss sie komplett durchlaufen werden (type=ALL, rows=5672186). Außerdem wird die Tabelle auch noch nach dem kompletten Lesen sortiert(Extra=Using filesort). Dies alles ist für die Datenbank sehr aufwendig. Die zweite Zeile bezieht sich auf die Tabelle \textbf{words}. Hier kann der ZUgriff über den Primärschlussel erfolgen (key=PRIMARY), welcher ja immer UNIQUE ist. Von der Tabelle \textbf{words} wird deshalb pro gelesene Zeile von Tabelle \textbf{big} nur eine Zeile gelesen (rows=1). Allerding werden über 5 Mio. Zeilen von \textbf{big} gelesen.
+Beide Zeilen haben die id 1, denn es handelt sich nur um ein SELECT. Die erste Zeile bezieht sich auf die Tabelle \textbf{big}. Diese Tabelle hat keinen Primärschlüssel und auch keinen anderen Index (possible\_keys=NULL, key=NULL). Daher muss sie komplett durchlaufen werden (type=ALL, rows=5672186). Außerdem wird die Tabelle auch noch nach dem kompletten Lesen sortiert (Extra=Using filesort). Dies alles ist für die Datenbank sehr aufwendig. Die zweite Zeile bezieht sich auf die Tabelle \textbf{words}. Hier kann der Zugriff über den Primärschlüssel erfolgen (key=PRIMARY), welcher ja immer UNIQUE ist. Von der Tabelle \textbf{words} wird deshalb pro gelesener Zeile von Tabelle \textbf{big} nur eine Zeile gelesen (rows=1). Allerding werden über 5 Mio. Zeilen von \textbf{big} gelesen.
 
 \subsection{Optimierungsmöglichkeiten und Benchmarking}
 Bevor man die Datenbank optimiert und die SQL-Anfragen benchmarkt sollte man sicherstellen,
@@ -330,15 +336,15 @@ Insgesamt werden also nur 10 Datensätze direkt aus dem Index gelesen, und zwar 
 \\An diesem einfachen Beispiel zeigt sich, wie mit Hilfe von Explain und Anlegen der richtigen Indizes die Performance von Abfragen um Größenordnungen gesteigert werden kann.
 \\Wird ein vorhandener Index bei der Anfrage nicht genutzt, obwohl er augenscheinlich genutzt werden sollte, dann kann das an veralteten Tabellen-Statistiken oder einer ungenügenden Stichprobe für die Statistiken liegen. Die Statistiken für eine Tabelle lassen sich dann mit ANALYZE TABLE Tabellenname aktualisieren.
 
-Als Nachteil von Indizes ist anzumerken, dass beim Schreiben ein gewisser Mehraufwand für die Datenbank besteht, da neben der Tabelle auch der Index aktualisiert werden muss. Bei Tabellen, in welche stängig sehr viel geschrieben wir, z.B. für Logging-Zwecke, könnten Indizes daher nachteilig sein.
+Als Nachteil von Indizes ist anzumerken, daß bei Schreibzugriffen auf die Tabelle ein gewisser Mehraufwand für die Datenbank besteht, da neben der Tabelle auch der Index aktualisiert werden muß. Bei Tabellen, in welche ständig sehr viel geschrieben wird, z.B. für Logging-Zwecke, könnten Indizes daher nachteilig sein.
 
-Bei der Optimierung von Datenbanken sind noch ein paar weitere Punkte zu beachten:
+Bei der Optimierung von Datenbanken sind noch weitere Punkte zu beachten:
 \begin{itemize} 
-	\item möglichst zuerst den Programmcode der Anwendung optimieren um DB-Anfragen zu bündeln (1+n-Problem)
-	\item berits im Entwicklungsprozess die DB-Anfragen proaktiv beobachten
+	\item möglichst zuerst den Programmcode der Anwendung optimieren, um DB-Anfragen zu bündeln (1+n-Problem)
+	\item bereits im Entwicklungsprozeß die DB-Anfragen proaktiv beobachten
 	\item mit verschiedenen Beispielwerten testen - der QEP ist nicht fix, sondern wird bei jeder Abfrage neu erstellt
 	\item nicht mit Entwicklungs-Datenbanken (kaum gefüllte Tabellen) testen, sondern Real-Word-Daten einsetzen, z.B. aus Backups
-	\item auf Produktiv-Systeme mit einer Stichprobe (z.B. jede 100. Anfrage) benchmarken - Systeme unter Last agieren anders als Systeme im Leerlauf
+	\item auf Produktiv-Systemen mit einer Stichprobe (z.B. jede 100. Anfrage) benchmarken - Systeme unter Last agieren anders als Systeme im Leerlauf
 	\item Tests von Zeit zu Zeit wiederholen, da sich die Tabellen im Laufe des Betriebs weiter füllen
 \end{itemize}
 
