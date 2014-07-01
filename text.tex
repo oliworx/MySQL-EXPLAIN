@@ -106,7 +106,7 @@ Wie man erkennt, wurde das EXPLAIN-Kommando schneller ausgeführt als das eigent
 Dies liegt daran, daß EXPLAIN nicht tatsächlich auf die Daten in der Tabelle zugreift, sondern nur aufzeigt, wie die Datenbank die Datensätze auffinden würde.
 
 \subsection{Die Spalten der EXPLAIN-Ausgabe}
-Als Ergebnis einer EXPLAIN-Anfrage liefert MySQL eine Tabelle mit festen Spalten und einer oder mehrerer Zeilen, je nach Komplexität der Anfrage. Die einzelnen Spalten haben folgende Bedeutung  \footnote{vgl. \cite{manual} \\ \url{http://dev.mysql.com/doc/refman/5.6/en/explain-output.html},\\ \cite{Schwartz2009} S. 665-676, \\ \cite{Bradford2011} Pos. 2696-2906}:\\
+Als Ergebnis einer EXPLAIN-Anfrage liefert MySQL eine Tabelle mit festen Spalten und einer oder mehrerer Zeilen, je nach Komplexität der Anfrage. Die einzelnen Spalten haben folgende Bedeutung  \footnote{vgl. \cite{manual} \url{http://dev.mysql.com/doc/refman/5.6/en/explain-output.html},\\ \cite{Schwartz2009} S. 665-676, \\ \cite{Bradford2011} Pos. 2696-2906}:\\
 \textbf{id}: identifiziert das SELECT, zu dem die Zeile gehört, bei einer einfachen SELECT-Abfrage stets die Zahl 1\\
 \textbf{select\_type}: gibt an, ob es sich um ein einfaches oder komplexes SELECT handelt. Folgende Werte können auftreten:
 \begin{description}[labelwidth=90pt,font=\ttfamily]
