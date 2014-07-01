@@ -39,12 +39,20 @@
 \lstset{
     keywordstyle=\color{black}
   , language = SQL
-  , basicstyle=\ttfamily\singlespacing,
+  , basicstyle=\ttfamily\singlespacing\scriptsize,
   , columns=flexible 
   , keepspaces=true,
   , morekeywords = {EXPLAIN, UNSIGNED, ENGINE, AUTO_INCREMENT, LOAD, DATA, INFILE}
   , showstringspaces=false
   } 
+
+% Für Abstand um die Überschriften
+\usepackage{titlesec}
+% kleinerer Abstand um die Überschriften
+\titlespacing\section{0pt}{8pt plus 4pt minus 2pt}{0pt plus 2pt minus 2pt}
+\titlespacing\subsection{0pt}{8pt plus 4pt minus 2pt}{0pt plus 2pt minus 2pt}
+\titlespacing\subsubsection{0pt}{8pt plus 4pt minus 2pt}{0pt plus 2pt minus 2pt}
+
 
 % fuer Zitate
 % \usepackage[round]{natbib}
@@ -57,8 +65,10 @@
 \usepackage{enumitem}
 \usepackage{color}
 
+\setlist{nolistsep,partopsep=0pt}
+
 \setlength{\parindent}{0pt} % keine Einrückung bei Absätzen
-\setlength{\parskip}{\baselineskip} % Abstand zwischen Absätzen
+% \setlength{\parskip}{\baselineskip} % Abstand zwischen Absätzen
 \setlist{nolistsep} % kein Abstand bei Listen zwischen den Items
 %\renewcommand{\familydefault}{\sfdefault} % Schriftfamilie
 
